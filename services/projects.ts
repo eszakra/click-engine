@@ -1,0 +1,163 @@
+import { supabase } from './supabase';
+
+export interface Project {
+    id: string;
+    imageUrl: string;
+    prompt: string;
+    author: string;
+    authorAvatar: string;
+    model: string;
+    date: string;
+}
+
+export const ProjectsService = {
+    getAll: async (): Promise<Project[]> => {
+        try {
+            // Fetch projects
+            const { data: projectsData, error: projectsError } = await supabase
+                .from('projects')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (projectsError) throw projectsError;
+
+            // Fetch users to get avatars
+            const { data: usersData, error: usersError } = await supabase
+                .from('users')
+                .select('name, avatar_url');
+
+            if (usersError) console.warn('Error fetching users for avatars:', usersError);
+
+            // Create a map of user avatars
+            const avatarMap = new Map();
+            if (usersData) {
+                usersData.forEach((user: any) => {
+                    avatarMap.set(user.name, user.avatar_url);
+                });
+            }
+
+            return (projectsData || []).map((record: any) => ({
+                id: record.id,
+                imageUrl: record.image_url || '',
+                prompt: record.prompt || '',
+                author: record.author_name || 'Unknown',
+                authorAvatar: avatarMap.get(record.author_name) || '',
+                model: record.model || 'Unknown',
+                date: new Date(record.created_at).toLocaleDateString()
+            }));
+        } catch (error) {
+            console.error('Error fetching projects:', error);
+            return [];
+        }
+    },
+
+    create: async (projectData: Omit<Project, 'id' | 'date'> & { aspectRatio?: string, referenceImage?: string, referenceImageMimeType?: string }): Promise<Project> => {
+        try {
+            let imageUrl = '';
+            const modelUsed = projectData.model;
+            const aspectRatio = projectData.aspectRatio || '1:1';
+
+            if (projectData.model === 'Grok 2' || projectData.model.includes('Nano Banana')) {
+                console.log(`Generating with ${projectData.model} (Edge Function)...`);
+
+                // Default to Grok settings
+                let apiModelId = 'grok-2-image-1212';
+                let provider = 'xai';
+
+                // Prepend aspect ratio to prompt for Grok (Stronger adherence)
+                let enhancedPrompt = "";
+                if (aspectRatio === '16:9') {
+                    enhancedPrompt = "wide 16:9 aspect ratio, landscape orientation, cinematic shot, " + projectData.prompt;
+                } else if (aspectRatio === '4:3') {
+                    enhancedPrompt = "4:3 aspect ratio, landscape orientation, " + projectData.prompt;
+                } else if (aspectRatio === '1:1') {
+                    enhancedPrompt = "square 1:1 aspect ratio, " + projectData.prompt;
+                } else {
+                    enhancedPrompt = projectData.prompt;
+                }
+                if (projectData.model.includes('Nano Banana')) {
+                    if (projectData.model === 'Nano Banana Pro') {
+                        apiModelId = 'gemini-3-pro-image-preview';
+                    } else {
+                        apiModelId = 'gemini-2.5-flash-image'; // Standard Nano Banana
+                    }
+                    provider = 'google';
+                }
+
+                const { data, error } = await supabase.functions.invoke('generate-image', {
+                    body: {
+                        prompt: enhancedPrompt,
+                        model: apiModelId,
+                        provider: provider,
+                        referenceImage: projectData.referenceImage,
+                        referenceImageMimeType: projectData.referenceImageMimeType,
+                        aspectRatio: aspectRatio
+                    }
+                });
+
+                if (error) throw error;
+                if (data.error) throw new Error(data.error);
+
+                imageUrl = data.imageUrl;
+            } else {
+                console.log('Generating with Pollinations...');
+
+                // Calculate dimensions based on aspect ratio
+                let width = 1024;
+                let height = 1024;
+
+                if (aspectRatio === '16:9') {
+                    width = 1280;
+                    height = 720;
+                } else if (aspectRatio === '4:3') {
+                    width = 1024;
+                    height = 768;
+                }
+
+                const pollUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(projectData.prompt)}?width=${width}&height=${height}&nologo=true&model=flux`;
+
+                const response = await fetch(pollUrl);
+                const blob = await response.blob();
+
+                const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
+                const { error: uploadError } = await supabase.storage
+                    .from('generated-images')
+                    .upload(fileName, blob, { contentType: 'image/png' });
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('generated-images')
+                    .getPublicUrl(fileName);
+
+                imageUrl = publicUrl;
+            }
+
+            const { data: project, error: dbError } = await supabase
+                .from('projects')
+                .insert({
+                    prompt: projectData.prompt,
+                    image_url: imageUrl,
+                    model: modelUsed,
+                    author_name: projectData.author
+                })
+                .select()
+                .single();
+
+            if (dbError) throw dbError;
+
+            return {
+                id: project.id,
+                imageUrl: imageUrl,
+                prompt: projectData.prompt,
+                author: projectData.author,
+                authorAvatar: projectData.authorAvatar,
+                model: modelUsed,
+                date: new Date(project.created_at).toLocaleDateString()
+            };
+        } catch (error) {
+            console.error('Error creating project:', error);
+            throw error;
+        }
+    }
+};

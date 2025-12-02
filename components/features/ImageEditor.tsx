@@ -22,7 +22,12 @@ interface HistoryItem {
     model: string;
 }
 
-const ImageEditor: React.FC = () => {
+interface ImageEditorProps {
+    isLoggedIn?: boolean;
+    onOpenAuth?: () => void;
+}
+
+const ImageEditor: React.FC<ImageEditorProps> = ({ isLoggedIn = false, onOpenAuth }) => {
     const [selectedTool, setSelectedTool] = useState('select');
     const [zoom, setZoom] = useState(100);
     const [brushSize, setBrushSize] = useState(20);
@@ -96,6 +101,13 @@ const ImageEditor: React.FC = () => {
     };
 
     const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (!isLoggedIn) {
+            onOpenAuth?.();
+            // Reset input so change event fires again if they retry
+            if (event.target) event.target.value = '';
+            return;
+        }
+
         const file = event.target.files?.[0];
         if (file) {
             const reader = new FileReader();
@@ -111,6 +123,12 @@ const ImageEditor: React.FC = () => {
 
     const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
+
+        if (!isLoggedIn) {
+            onOpenAuth?.();
+            return;
+        }
+
         const file = event.dataTransfer.files?.[0];
         if (file && file.type.startsWith('image/')) {
             const reader = new FileReader();
@@ -244,7 +262,15 @@ const ImageEditor: React.FC = () => {
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ duration: 0.5 }}
                         style={{ width: uploadedImage ? 'auto' : '800px', height: uploadedImage ? 'auto' : '600px' }}
-                        onClick={() => !uploadedImage && fileInputRef.current?.click()}
+                        onClick={() => {
+                            if (!uploadedImage) {
+                                if (!isLoggedIn) {
+                                    onOpenAuth?.();
+                                } else {
+                                    fileInputRef.current?.click();
+                                }
+                            }
+                        }}
                     >
                         {!uploadedImage ? (
                             <div className="flex flex-col items-center justify-center text-gray-500 p-20">

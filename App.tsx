@@ -122,7 +122,7 @@ const App: React.FC = () => {
                     <UsageDashboard />
                 )}
                 {currentView === 'edit' && (
-                    <ImageEditor />
+                    <ImageEditor isLoggedIn={!!currentUser} onOpenAuth={() => setIsAuthModalOpen(true)} />
                 )}
             </main>
 

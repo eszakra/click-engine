@@ -5,7 +5,7 @@ import {
     Move, Maximize, type LucideIcon, Undo, Redo,
     Download, Share2, Layers, Settings, Wand2,
     Plus, Minus, Square, Circle, Upload, X,
-    Clock, Cpu, ChevronDown, ChevronUp, Zap
+    Clock, Cpu, ChevronDown, ChevronUp, Zap, Copy, Check
 } from 'lucide-react';
 import GlassCard from '../ui/GlassCard';
 import PremiumLoader from '../ui/PremiumLoader';
@@ -34,6 +34,8 @@ const ImageEditor: React.FC = () => {
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [showModelMenu, setShowModelMenu] = useState(false);
     const [imageAspectRatio, setImageAspectRatio] = useState<string>('1:1');
+    const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
 
     // Load history from localStorage on mount
     const [history, setHistory] = useState<HistoryItem[]>(() => {
@@ -129,6 +131,7 @@ const ImageEditor: React.FC = () => {
 
     const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
+        setIsDragging(false);
         const file = event.dataTransfer.files?.[0];
         if (file && file.type.startsWith('image/')) {
             const reader = new FileReader();
@@ -144,6 +147,20 @@ const ImageEditor: React.FC = () => {
 
     const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+        if (uploadedImage) {
+            event.preventDefault();
+            const delta = event.deltaY > 0 ? -10 : 10;
+            setZoom(z => Math.min(200, Math.max(10, z + delta)));
+        }
     };
 
     const handleGenerate = async () => {
@@ -213,6 +230,12 @@ const ImageEditor: React.FC = () => {
         calculateAspectRatio(item.url);
     };
 
+    const handleCopyPrompt = (prompt: string, idx: number) => {
+        navigator.clipboard.writeText(prompt);
+        setCopiedId(`history-${idx}`);
+        setTimeout(() => setCopiedId(null), 2000);
+    };
+
     return (
         <div className="fixed inset-0 bg-[#050505] text-white overflow-hidden flex flex-col z-40">
             {/* Top Bar */}
@@ -244,7 +267,8 @@ const ImageEditor: React.FC = () => {
 
             <div className="flex-1 flex overflow-hidden relative">
                 {/* Left Sidebar (History) */}
-                <div className="w-20 border-r border-white/5 bg-[#0A0A0A] flex flex-col items-center py-4 gap-4 z-40 overflow-y-auto no-scrollbar">
+                {/* Left Sidebar (History) */}
+                <div className="w-24 border-r border-white/5 bg-[#0A0A0A] flex flex-col items-center py-6 gap-4 z-40 overflow-y-auto custom-scrollbar h-full shrink-0">
                     {/* Hidden Input for Upload */}
                     <input
                         type="file"
@@ -259,12 +283,25 @@ const ImageEditor: React.FC = () => {
                         <button
                             key={idx}
                             onClick={() => restoreHistoryItem(item)}
-                            className="w-12 h-12 rounded-lg border border-white/10 overflow-hidden hover:border-brand transition-colors relative group"
+                            className="w-16 h-16 rounded-xl border border-white/10 overflow-hidden hover:border-brand transition-all hover:scale-105 shrink-0 relative group shadow-sm"
                             title={item.prompt}
                         >
                             <img src={item.url} alt={`History ${idx}`} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+
+                            {/* Copy Prompt Button */}
+                            <div
+                                onClick={(e) => { e.stopPropagation(); handleCopyPrompt(item.prompt, idx); }}
+                                className="absolute bottom-1 right-1 p-1 bg-black/60 hover:bg-black/80 rounded-md text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm border border-white/10"
+                                title="Copy Prompt"
+                            >
+                                {copiedId === `history-${idx}` ? <Check size={10} className="text-green-400" /> : <Copy size={10} />}
+                            </div>
                         </button>
                     ))}
+
+                    {/* Spacer at bottom */}
+                    <div className="h-20 shrink-0" />
                 </div>
 
                 {/* Main Canvas Area */}
@@ -272,6 +309,7 @@ const ImageEditor: React.FC = () => {
                     className="flex-1 bg-[#050505] relative overflow-hidden flex items-center justify-center"
                     onDrop={handleDrop}
                     onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
                 >
                     {/* Grid Background Pattern */}
                     <div className="absolute inset-0 opacity-10"
@@ -283,12 +321,20 @@ const ImageEditor: React.FC = () => {
 
                     {/* The Canvas */}
                     <motion.div
-                        className={`relative max-w-[90%] max-h-[80%] rounded-lg overflow-hidden group flex items-center justify-center transition-all duration-300 ${!uploadedImage ? 'cursor-pointer hover:bg-white/5 border-2 border-dashed border-white/10 hover:border-white/20' : 'bg-[#111] border border-white/5 shadow-2xl'}`}
+                        className={`relative max-w-[90%] max-h-[80%] rounded-lg overflow-hidden group flex items-center justify-center transition-all duration-300 ${!uploadedImage
+                                ? `cursor-pointer hover:bg-white/5 border-2 border-dashed ${isDragging ? 'border-brand bg-brand/10 scale-105' : 'border-white/10 hover:border-white/20'}`
+                                : 'bg-[#111] border border-white/5 shadow-2xl'
+                            }`}
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ duration: 0.5 }}
-                        style={{ width: uploadedImage ? 'auto' : '800px', height: uploadedImage ? 'auto' : '600px' }}
+                        style={{
+                            width: uploadedImage ? 'auto' : '800px',
+                            height: uploadedImage ? 'auto' : '600px',
+                            transform: uploadedImage ? `scale(${zoom / 100})` : 'none'
+                        }}
                         onClick={() => !uploadedImage && fileInputRef.current?.click()}
+                        onWheel={handleWheel}
                     >
                         {!uploadedImage ? (
                             <div className="flex flex-col items-center justify-center text-gray-500 p-20">

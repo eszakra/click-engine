@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Image as ImageIcon, Sliders, Upload, Maximize2, X, Lock, Wand2, Download, Share2, Check } from 'lucide-react';
+import { Sparkles, Image as ImageIcon, Sliders, Upload, Maximize2, X, Lock, Wand2, Download, Check, Copy } from 'lucide-react';
 import GlassCard from '../ui/GlassCard';
 import PremiumButton from '../ui/PremiumButton';
 import PremiumLoader from '../ui/PremiumLoader';
+import AccessRestricted from '../ui/AccessRestricted';
 import { Project } from '../../services/projects';
 
 interface ImageGeneratorProps {
@@ -79,8 +80,10 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn 
         }
     };
 
-    const handleShare = (url: string, id: string) => {
-        navigator.clipboard.writeText(url);
+
+
+    const handleCopyPrompt = (prompt: string, id: string) => {
+        navigator.clipboard.writeText(prompt);
         setCopiedId(id);
         setTimeout(() => setCopiedId(null), 2000);
     };
@@ -95,7 +98,8 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn 
     };
 
     return (
-        <div className="flex flex-col h-full max-w-7xl mx-auto px-4">
+        <div className="flex flex-col h-full max-w-7xl mx-auto px-4 relative">
+            {!isLoggedIn && <AccessRestricted variant="overlay" />}
 
             {/* Header Section */}
             <div className="text-center mb-8 mt-4">
@@ -167,31 +171,16 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn 
                             </div>
 
                             <div className="flex items-center gap-4 w-full md:w-auto justify-end">
-                                <button
+                                <PremiumButton
                                     onClick={handleGenerate}
                                     disabled={isLoggedIn && !prompt.trim() || isGenerating}
-                                    className={`
-                                        relative group overflow-hidden rounded-xl px-8 py-3 transition-all duration-300
-                                        ${!isLoggedIn || !prompt.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 hover:shadow-[0_0_20px_rgba(255,0,85,0.4)]'}
-                                    `}
+                                    variant="glow"
+                                    isLoading={isGenerating}
+                                    icon={!isGenerating && <Wand2 size={16} />}
+                                    className="w-full md:w-auto"
                                 >
-                                    <div className="absolute inset-0 bg-gradient-brand transition-all duration-300 group-hover:brightness-110" />
-                                    <div className="relative flex items-center gap-2 text-white font-bold text-sm">
-                                        {isGenerating ? (
-                                            <>
-                                                <div className="w-4 h-4">
-                                                    <PremiumLoader size={16} className="!gap-0" />
-                                                </div>
-                                                <span>Creating...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Wand2 size={16} />
-                                                <span>{isLoggedIn ? 'Generate' : 'Sign In'}</span>
-                                            </>
-                                        )}
-                                    </div>
-                                </button>
+                                    {isLoggedIn ? 'Generate' : 'Sign In'}
+                                </PremiumButton>
                             </div>
                         </div>
                     </div>
@@ -240,25 +229,25 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn 
 
                                     {/* Overlay Actions */}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 pointer-events-none">
-                                        <p className="text-white text-sm font-medium line-clamp-1 mb-3 translate-y-4 group-hover:translate-y-0 transition-transform duration-300">{project.prompt}</p>
-                                        <div className="flex items-center gap-2 pointer-events-auto translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-75">
+                                        <p className="text-white text-sm font-medium line-clamp-1 mb-3">{project.prompt}</p>
+                                        <div className="flex items-center gap-2 pointer-events-auto">
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleDownload(project.imageUrl, project.prompt); }}
-                                                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition-colors border border-white/10"
+                                                className="p-2 rounded-lg bg-white/10 hover:bg-white hover:text-black text-white backdrop-blur-md transition-all duration-200 border border-white/10 hover:border-white hover:scale-105"
                                                 title="Download"
                                             >
                                                 <Download size={14} />
                                             </button>
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); handleShare(project.imageUrl, project.id); }}
-                                                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition-colors border border-white/10"
-                                                title="Copy Link"
+                                                onClick={(e) => { e.stopPropagation(); handleCopyPrompt(project.prompt, project.id); }}
+                                                className="p-2 rounded-lg bg-white/10 hover:bg-white hover:text-black text-white backdrop-blur-md transition-all duration-200 border border-white/10 hover:border-white hover:scale-105"
+                                                title="Copy Prompt"
                                             >
-                                                {copiedId === project.id ? <Check size={14} className="text-green-400" /> : <Share2 size={14} />}
+                                                {copiedId === project.id ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
                                             </button>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); setSelectedImage(project); }}
-                                                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition-colors ml-auto border border-white/10"
+                                                className="p-2 rounded-lg bg-white/10 hover:bg-white hover:text-black text-white backdrop-blur-md transition-all duration-200 ml-auto border border-white/10 hover:border-white hover:scale-105"
                                                 title="Expand"
                                             >
                                                 <Maximize2 size={14} />
@@ -300,16 +289,16 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn 
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="relative max-w-7xl w-full max-h-full flex flex-col items-center"
+                            className="relative max-w-7xl w-full max-h-[90vh] flex flex-col items-center overflow-y-auto custom-scrollbar p-4"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <img
                                 src={selectedImage.imageUrl}
                                 alt={selectedImage.prompt}
-                                className="max-h-[80vh] w-auto object-contain rounded-lg shadow-2xl border border-white/10"
+                                className="max-h-[70vh] w-auto object-contain rounded-lg shadow-2xl border border-white/10 shrink-0"
                             />
 
-                            <div className="mt-6 flex items-center gap-4 bg-black/50 backdrop-blur-md px-6 py-3 rounded-full border border-white/10">
+                            <div className="mt-6 flex items-center gap-4 bg-black/50 backdrop-blur-md px-6 py-3 rounded-full border border-white/10 shrink-0">
                                 <span className="text-white/80 text-sm font-medium mr-4 border-r border-white/10 pr-4">{selectedImage.model}</span>
                                 <button
                                     onClick={() => handleDownload(selectedImage.imageUrl, selectedImage.prompt)}
@@ -318,16 +307,21 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn 
                                     <Download size={16} /> Download
                                 </button>
                                 <button
-                                    onClick={() => handleShare(selectedImage.imageUrl, selectedImage.id)}
+                                    onClick={() => handleCopyPrompt(selectedImage.prompt, selectedImage.id)}
                                     className="flex items-center gap-2 text-white hover:text-brand transition-colors text-sm font-medium"
                                 >
-                                    {copiedId === selectedImage.id ? <Check size={16} /> : <Share2 size={16} />} Share
+                                    {copiedId === selectedImage.id ? <Check size={16} /> : <Copy size={16} />} Copy Prompt
                                 </button>
+                            </div>
+
+                            {/* Full Prompt Display */}
+                            <div className="mt-4 max-w-2xl text-center shrink-0 pb-4">
+                                <p className="text-gray-400 text-sm">{selectedImage.prompt}</p>
                             </div>
 
                             <button
                                 onClick={() => setSelectedImage(null)}
-                                className="absolute -top-12 right-0 p-2 text-white/50 hover:text-white transition-colors"
+                                className="absolute top-4 right-4 p-2 text-white/50 hover:text-white transition-colors bg-black/50 rounded-full backdrop-blur-md z-50"
                             >
                                 <X size={24} />
                             </button>
@@ -335,7 +329,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn 
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 };
 

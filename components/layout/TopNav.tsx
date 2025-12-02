@@ -41,8 +41,7 @@ const TopNav: React.FC<TopNavProps> = ({ currentView, onNavigate, currentUser, o
                         </div>
                         {/* Horizontal Text Layout */}
                         <div className="flex items-center gap-1 leading-none hidden md:flex">
-                            <span className="font-display font-bold text-sm text-white">Click</span>
-                            <span className="font-display font-bold text-sm text-white">Tools</span>
+                            <span className="font-display font-bold text-sm text-white">Click-Engine</span>
                         </div>
                     </div>
 

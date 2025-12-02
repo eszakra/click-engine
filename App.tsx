@@ -11,6 +11,7 @@ import TopNav from './components/layout/TopNav';
 import Sidebar from './components/layout/Sidebar';
 import { AuthService, User } from './services/auth';
 import { ProjectsService, Project } from './services/projects';
+import AccessRestricted from './components/ui/AccessRestricted';
 
 const App: React.FC = () => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -27,6 +28,14 @@ const App: React.FC = () => {
         if (user) setCurrentUser(user);
 
         ProjectsService.getAll().then(setProjects);
+
+        // Listen for auth modal events from AccessRestricted component
+        const handleOpenAuth = () => setIsAuthModalOpen(true);
+        window.addEventListener('open-auth-modal', handleOpenAuth);
+
+        return () => {
+            window.removeEventListener('open-auth-modal', handleOpenAuth);
+        };
     }, []);
 
     const handleLogin = async (userData: { name: string; avatar: string }) => {
@@ -103,7 +112,8 @@ const App: React.FC = () => {
             />
 
             {/* Only show Sidebar in Generate view */}
-            {currentView === 'generate' && (
+            {/* Only show Sidebar in Generate view and when logged in */}
+            {currentView === 'generate' && currentUser && (
                 <Sidebar selectedModel={selectedModel} onSelectModel={setSelectedModel} />
             )}
 
@@ -113,54 +123,31 @@ const App: React.FC = () => {
                     <ImageGenerator onGenerate={handleGenerateRequest} isLoggedIn={!!currentUser} />
                 )}
                 {currentView === 'projects' && (
-                    <Projects projects={projects} currentUser={currentUser ? currentUser.name : ''} />
+                    <Projects
+                        projects={projects}
+                        currentUser={currentUser ? currentUser.name : ''}
+                        onOpenAuth={() => setIsAuthModalOpen(true)}
+                    />
                 )}
                 {currentView === 'team' && (
                     currentUser ? (
                         <DesignersList />
                     ) : (
-                        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-                            <h2 className="text-3xl font-bold mb-4">Login Required</h2>
-                            <p className="text-gray-400 mb-6">You need to sign in to access the Team section</p>
-                            <button
-                                onClick={() => setIsAuthModalOpen(true)}
-                                className="px-6 py-3 bg-brand hover:bg-brand-light text-white rounded-lg transition-colors font-semibold"
-                            >
-                                Sign In
-                            </button>
-                        </div>
+                        <AccessRestricted onSignIn={() => setIsAuthModalOpen(true)} />
                     )
                 )}
                 {currentView === 'usage' && (
                     currentUser ? (
                         <UsageDashboard />
                     ) : (
-                        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-                            <h2 className="text-3xl font-bold mb-4">Login Required</h2>
-                            <p className="text-gray-400 mb-6">You need to sign in to access Usage Dashboard</p>
-                            <button
-                                onClick={() => setIsAuthModalOpen(true)}
-                                className="px-6 py-3 bg-brand hover:bg-brand-light text-white rounded-lg transition-colors font-semibold"
-                            >
-                                Sign In
-                            </button>
-                        </div>
+                        <AccessRestricted onSignIn={() => setIsAuthModalOpen(true)} />
                     )
                 )}
                 {currentView === 'edit' && (
                     currentUser ? (
                         <ImageEditor />
                     ) : (
-                        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-                            <h2 className="text-3xl font-bold mb-4">Login Required</h2>
-                            <p className="text-gray-400 mb-6">You need to sign in to access the Image Editor</p>
-                            <button
-                                onClick={() => setIsAuthModalOpen(true)}
-                                className="px-6 py-3 bg-brand hover:bg-brand-light text-white rounded-lg transition-colors font-semibold"
-                            >
-                                Sign In
-                            </button>
-                        </div>
+                        <AccessRestricted onSignIn={() => setIsAuthModalOpen(true)} />
                     )
                 )}
             </main>

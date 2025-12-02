@@ -116,13 +116,52 @@ const App: React.FC = () => {
                     <Projects projects={projects} currentUser={currentUser ? currentUser.name : ''} />
                 )}
                 {currentView === 'team' && (
-                    <DesignersList />
+                    currentUser ? (
+                        <DesignersList />
+                    ) : (
+                        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+                            <h2 className="text-3xl font-bold mb-4">Login Required</h2>
+                            <p className="text-gray-400 mb-6">You need to sign in to access the Team section</p>
+                            <button
+                                onClick={() => setIsAuthModalOpen(true)}
+                                className="px-6 py-3 bg-brand hover:bg-brand-light text-white rounded-lg transition-colors font-semibold"
+                            >
+                                Sign In
+                            </button>
+                        </div>
+                    )
                 )}
                 {currentView === 'usage' && (
-                    <UsageDashboard />
+                    currentUser ? (
+                        <UsageDashboard />
+                    ) : (
+                        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+                            <h2 className="text-3xl font-bold mb-4">Login Required</h2>
+                            <p className="text-gray-400 mb-6">You need to sign in to access Usage Dashboard</p>
+                            <button
+                                onClick={() => setIsAuthModalOpen(true)}
+                                className="px-6 py-3 bg-brand hover:bg-brand-light text-white rounded-lg transition-colors font-semibold"
+                            >
+                                Sign In
+                            </button>
+                        </div>
+                    )
                 )}
                 {currentView === 'edit' && (
-                    <ImageEditor isLoggedIn={!!currentUser} onOpenAuth={() => setIsAuthModalOpen(true)} />
+                    currentUser ? (
+                        <ImageEditor />
+                    ) : (
+                        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+                            <h2 className="text-3xl font-bold mb-4">Login Required</h2>
+                            <p className="text-gray-400 mb-6">You need to sign in to access the Image Editor</p>
+                            <button
+                                onClick={() => setIsAuthModalOpen(true)}
+                                className="px-6 py-3 bg-brand hover:bg-brand-light text-white rounded-lg transition-colors font-semibold"
+                            >
+                                Sign In
+                            </button>
+                        </div>
+                    )
                 )}
             </main>
 

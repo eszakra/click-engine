@@ -8,6 +8,7 @@ import {
     Clock, Cpu, ChevronDown, ChevronUp, Zap
 } from 'lucide-react';
 import GlassCard from '../ui/GlassCard';
+import PremiumLoader from '../ui/PremiumLoader';
 import { ProjectsService } from '../../services/projects';
 
 interface Tool {
@@ -22,12 +23,7 @@ interface HistoryItem {
     model: string;
 }
 
-interface ImageEditorProps {
-    isLoggedIn?: boolean;
-    onOpenAuth?: () => void;
-}
-
-const ImageEditor: React.FC<ImageEditorProps> = ({ isLoggedIn = false, onOpenAuth }) => {
+const ImageEditor: React.FC = () => {
     const [selectedTool, setSelectedTool] = useState('select');
     const [zoom, setZoom] = useState(100);
     const [brushSize, setBrushSize] = useState(20);
@@ -89,25 +85,35 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ isLoggedIn = false, onOpenAut
         const img = new Image();
         img.onload = () => {
             const ratio = img.width / img.height;
-            // Determine nearest standard aspect ratio
-            if (Math.abs(ratio - 16 / 9) < 0.1) setImageAspectRatio('16:9');
-            else if (Math.abs(ratio - 4 / 3) < 0.1) setImageAspectRatio('4:3');
-            else if (Math.abs(ratio - 1) < 0.1) setImageAspectRatio('1:1');
-            else if (Math.abs(ratio - 9 / 16) < 0.1) setImageAspectRatio('9:16'); // Portrait
-            else if (Math.abs(ratio - 3 / 4) < 0.1) setImageAspectRatio('3:4');   // Portrait
-            else setImageAspectRatio('1:1'); // Default fallback
+
+            // Define standard aspect ratios
+            const ratios: Record<string, number> = {
+                '16:9': 16 / 9,
+                '4:3': 4 / 3,
+                '1:1': 1,
+                '3:4': 3 / 4,
+                '9:16': 9 / 16
+            };
+
+            // Find closest standard ratio
+            let closest = '1:1';
+            let minDiff = Infinity;
+
+            for (const [key, val] of Object.entries(ratios)) {
+                const diff = Math.abs(ratio - val);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closest = key;
+                }
+            }
+
+            setImageAspectRatio(closest);
+            console.log(`Detected Aspect Ratio: ${closest} (Raw: ${ratio})`);
         };
         img.src = src;
     };
 
     const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (!isLoggedIn) {
-            onOpenAuth?.();
-            // Reset input so change event fires again if they retry
-            if (event.target) event.target.value = '';
-            return;
-        }
-
         const file = event.target.files?.[0];
         if (file) {
             const reader = new FileReader();
@@ -123,12 +129,6 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ isLoggedIn = false, onOpenAut
 
     const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
-
-        if (!isLoggedIn) {
-            onOpenAuth?.();
-            return;
-        }
-
         const file = event.dataTransfer.files?.[0];
         if (file && file.type.startsWith('image/')) {
             const reader = new FileReader();
@@ -151,9 +151,35 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ isLoggedIn = false, onOpenAut
 
         setIsGenerating(true);
         try {
-            // Extract base64 data and mime type
-            const [mimeTypePrefix, base64Data] = uploadedImage.split(';base64,');
-            const mimeType = mimeTypePrefix.split(':')[1];
+            let base64Data: string;
+            let mimeType: string;
+
+            // If there's a generated image, we need to fetch it and convert to base64
+            if (generatedImage) {
+                // Fetch the image from URL
+                const response = await fetch(generatedImage);
+                const blob = await response.blob();
+
+                // Convert blob to base64
+                const base64 = await new Promise<string>((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        const result = reader.result as string;
+                        resolve(result);
+                    };
+                    reader.readAsDataURL(blob);
+                });
+
+                // Extract base64 data and mime type
+                const [mimeTypePrefix, data] = base64.split(';base64,');
+                mimeType = mimeTypePrefix.split(':')[1];
+                base64Data = data;
+            } else {
+                // Use the uploaded image (first edit)
+                const [mimeTypePrefix, data] = uploadedImage.split(';base64,');
+                mimeType = mimeTypePrefix.split(':')[1];
+                base64Data = data;
+            }
 
             // Get current user (mock or from local storage)
             const userJson = localStorage.getItem('click_tools_current_user');
@@ -262,15 +288,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ isLoggedIn = false, onOpenAut
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ duration: 0.5 }}
                         style={{ width: uploadedImage ? 'auto' : '800px', height: uploadedImage ? 'auto' : '600px' }}
-                        onClick={() => {
-                            if (!uploadedImage) {
-                                if (!isLoggedIn) {
-                                    onOpenAuth?.();
-                                } else {
-                                    fileInputRef.current?.click();
-                                }
-                            }
-                        }}
+                        onClick={() => !uploadedImage && fileInputRef.current?.click()}
                     >
                         {!uploadedImage ? (
                             <div className="flex flex-col items-center justify-center text-gray-500 p-20">
@@ -286,21 +304,33 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ isLoggedIn = false, onOpenAut
                                     className="max-w-full max-h-[70vh] object-contain"
                                 />
                                 {isGenerating && (
-                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-sm">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                            <span className="text-sm font-medium text-white">Generating...</span>
+                                    <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-20">
+                                        {/* Subtle Liquid Shimmer */}
+                                        <motion.div
+                                            className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent"
+                                            animate={{
+                                                backgroundPosition: ['0% 0%', '100% 100%'],
+                                                opacity: [0.2, 0.4, 0.2]
+                                            }}
+                                            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                                            style={{ backgroundSize: '200% 200%' }}
+                                        />
+
+                                        <div className="flex flex-col items-center justify-center z-30">
+                                            <PremiumLoader size={60} />
                                         </div>
                                     </div>
                                 )}
-                                {generatedImage && (
-                                    <button
+                                {generatedImage && !isGenerating && (
+                                    <motion.button
+                                        initial={{ opacity: 0, scale: 0.8 }}
+                                        animate={{ opacity: 1, scale: 1 }}
                                         onClick={(e) => { e.stopPropagation(); setGeneratedImage(null); }}
-                                        className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
+                                        className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors border border-white/10 backdrop-blur-md z-20"
                                         title="Revert to original"
                                     >
                                         <Undo size={16} />
-                                    </button>
+                                    </motion.button>
                                 )}
                             </div>
                         )}

@@ -30,8 +30,9 @@ serve(async (req) => {
 
         // Handle Google (Gemini) - Using REST API directly
         if (provider === 'google') {
-            // Use the user's API key
-            const GOOGLE_API_KEY = 'AIzaSyAN3ttogQFWbyQ2fIsH-l3aqvJO_uAbQRA';
+            // Use the API key from Supabase Secrets
+            const GOOGLE_API_KEY = Deno.env.get('GOOGLE_API_KEY');
+            if (!GOOGLE_API_KEY) throw new Error('GOOGLE_API_KEY not set');
 
             console.log(`Calling Google AI with model: ${model}`);
 

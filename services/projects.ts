@@ -65,21 +65,28 @@ export const ProjectsService = {
                 let provider = 'xai';
 
                 // Prepend aspect ratio to prompt for Grok (Stronger adherence)
+                // Prepend aspect ratio to prompt for Grok (Stronger adherence)
                 let enhancedPrompt = "";
-                if (aspectRatio === '16:9') {
-                    enhancedPrompt = "wide 16:9 aspect ratio, landscape orientation, cinematic shot, " + projectData.prompt;
-                } else if (aspectRatio === '4:3') {
-                    enhancedPrompt = "4:3 aspect ratio, landscape orientation, " + projectData.prompt;
-                } else if (aspectRatio === '1:1') {
-                    enhancedPrompt = "square 1:1 aspect ratio, " + projectData.prompt;
+
+                // If editing (referenceImage exists), prioritize preserving structure
+                if (projectData.referenceImage) {
+                    enhancedPrompt = `maintain original ${aspectRatio} aspect ratio, ` + projectData.prompt;
                 } else {
-                    enhancedPrompt = projectData.prompt;
+                    if (aspectRatio === '16:9') {
+                        enhancedPrompt = "wide 16:9 aspect ratio, landscape orientation, cinematic shot, " + projectData.prompt;
+                    } else if (aspectRatio === '4:3') {
+                        enhancedPrompt = "4:3 aspect ratio, landscape orientation, " + projectData.prompt;
+                    } else if (aspectRatio === '1:1') {
+                        enhancedPrompt = "square 1:1 aspect ratio, " + projectData.prompt;
+                    } else {
+                        enhancedPrompt = projectData.prompt;
+                    }
                 }
                 if (projectData.model.includes('Nano Banana')) {
                     if (projectData.model === 'Nano Banana Pro') {
                         apiModelId = 'gemini-3-pro-image-preview';
                     } else {
-                        apiModelId = 'gemini-2.5-flash-image'; // Standard Nano Banana
+                        apiModelId = 'gemini-2.5-flash-image'; // Standard Nano Banana - Image Generation
                     }
                     provider = 'google';
                 }

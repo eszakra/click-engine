@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Image as ImageIcon, Sliders, Upload, Maximize2, X, Lock, Wand2, Download, Share2, Check } from 'lucide-react';
 import GlassCard from '../ui/GlassCard';
 import PremiumButton from '../ui/PremiumButton';
+import PremiumLoader from '../ui/PremiumLoader';
 import { Project } from '../../services/projects';
 
 interface ImageGeneratorProps {
@@ -22,13 +23,6 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn 
     // Load user's history on mount
     React.useEffect(() => {
         if (isLoggedIn) {
-            // We need to fetch the user's name from somewhere to filter, 
-            // but for now we'll fetch all and filter client side or assume the parent passes the user name.
-            // Actually, ImageGenerator doesn't receive the user name prop, only isLoggedIn.
-            // Let's assume we can get it from localStorage for now to be quick, 
-            // or better, update the component to accept currentUser prop.
-            // For this step, I'll use a service call that returns all and I'll filter by the user from localStorage.
-
             const loadHistory = async () => {
                 const userJson = localStorage.getItem('click_tools_current_user');
                 if (userJson) {
@@ -92,9 +86,11 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn 
     };
 
     const getGridClass = () => {
-        if (generatedImages.length === 1) return 'grid-cols-1 max-w-4xl mx-auto';
-        if (generatedImages.length === 2) return 'grid-cols-1 md:grid-cols-2';
-        if (generatedImages.length === 3) return 'grid-cols-1 md:grid-cols-3';
+        const totalItems = generatedImages.length + (isGenerating ? imageCount : 0);
+        if (totalItems === 0) return 'grid-cols-1 max-w-4xl mx-auto'; // Should not happen if we handle empty state correctly
+        if (totalItems === 1) return 'grid-cols-1 max-w-4xl mx-auto';
+        if (totalItems === 2) return 'grid-cols-1 md:grid-cols-2';
+        if (totalItems === 3) return 'grid-cols-1 md:grid-cols-3';
         return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4';
     };
 
@@ -140,12 +136,6 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn 
                         <div className="flex flex-col md:flex-row items-center justify-between px-4 pb-4 pt-2 gap-4">
                             <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto no-scrollbar">
                                 <div className="flex items-center bg-white/5 rounded-xl p-1 border border-white/5">
-                                    {/* We need to know the supported ratios for the current model. 
-                                        Ideally, this should be passed as a prop. 
-                                        For now, we'll default to all if not provided, or we can look it up if we had the model list here.
-                                        Let's assume all are supported for now as per the Sidebar update, 
-                                        but strictly speaking we should pass 'supportedRatios' prop to ImageGenerator.
-                                    */}
                                     {['16:9', '4:3', '1:1'].map((ratio) => (
                                         <button
                                             key={ratio}
@@ -189,7 +179,9 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn 
                                     <div className="relative flex items-center gap-2 text-white font-bold text-sm">
                                         {isGenerating ? (
                                             <>
-                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                <div className="w-4 h-4">
+                                                    <PremiumLoader size={16} className="!gap-0" />
+                                                </div>
                                                 <span>Creating...</span>
                                             </>
                                         ) : (
@@ -209,24 +201,29 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn 
             {/* Results Area */}
             <div className="flex-1 min-h-[400px]">
                 <AnimatePresence mode="popLayout">
-                    {isGenerating ? (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="w-full"
-                        >
-                            <SkeletonLoader count={1} aspectRatio={aspectRatio} />
-                        </motion.div>
-                    ) : generatedImages.length > 0 ? (
+                    {(generatedImages.length > 0 || isGenerating) ? (
                         <div className={`grid gap-3 ${getGridClass()} transition-all duration-500`}>
+                            {/* Loading State - Skeleton + Spinner */}
+                            {isGenerating && Array.from({ length: imageCount }).map((_, i) => (
+                                <motion.div
+                                    key={`loading-${i}`}
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    className="aspect-video rounded-xl overflow-hidden bg-white/5 border border-white/10 relative flex items-center justify-center"
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent animate-pulse" />
+                                    <PremiumLoader size={32} />
+                                </motion.div>
+                            ))}
+
+                            {/* Existing Images */}
                             {generatedImages.map((project, index) => (
                                 <motion.div
                                     key={project.id}
-                                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
                                     layout
-                                    transition={{ duration: 0.4, delay: index * 0.1 }}
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
                                     className="group relative aspect-video rounded-xl overflow-hidden bg-white/5 border border-white/10 shadow-lg hover:shadow-2xl hover:border-white/20 transition-all duration-300"
                                 >
                                     <img
@@ -338,28 +335,6 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn 
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
-    );
-};
-
-// Skeleton Loader Component
-const SkeletonLoader = ({ count = 1, aspectRatio = '1:1' }: { count?: number, aspectRatio?: string }) => {
-    // Determine aspect ratio class
-    let aspectClass = 'aspect-square';
-    if (aspectRatio === '16:9') aspectClass = 'aspect-video';
-    else if (aspectRatio === '4:3') aspectClass = 'aspect-[4/3]';
-
-    return (
-        <div className={`grid gap-3 ${count > 1 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1 max-w-3xl mx-auto'}`}>
-            {Array.from({ length: count }).map((_, i) => (
-                <div key={i} className={`${aspectClass} rounded-xl bg-white/5 animate-pulse border border-white/5 overflow-hidden relative`}>
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
-                    <div className="absolute bottom-4 left-4 right-4 space-y-2">
-                        <div className="h-4 bg-white/10 rounded w-3/4" />
-                        <div className="h-3 bg-white/10 rounded w-1/2" />
-                    </div>
-                </div>
-            ))}
         </div>
     );
 };

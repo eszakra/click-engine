@@ -252,6 +252,14 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                 aspectRatio: imageAspectRatio // Use calculated aspect ratio
             });
 
+            // Preload the new image to ensure smooth transition
+            await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = project.imageUrl;
+            });
+
             setGeneratedImage(project.imageUrl);
         } catch (error) {
             console.error("Error generating image:", error);

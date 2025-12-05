@@ -5,7 +5,7 @@ import {
     Move, Maximize, type LucideIcon, Undo, Redo,
     Download, Share2, Layers, Settings, Wand2,
     Plus, Minus, Square, Circle, Upload, X,
-    Clock, Cpu, ChevronDown, ChevronUp, Zap, Copy, Check
+    Clock, Cpu, ChevronDown, ChevronUp, Zap, Copy, Check, Lock
 } from 'lucide-react';
 import GlassCard from '../ui/GlassCard';
 import PremiumLoader from '../ui/PremiumLoader';
@@ -40,6 +40,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
     const [imageAspectRatio, setImageAspectRatio] = useState<string>('1:1');
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
+    const [safetyWarning, setSafetyWarning] = useState(false);
 
     // Load history from localStorage on mount
     const [history, setHistory] = useState<HistoryItem[]>(() => {
@@ -206,6 +207,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
         if (!uploadedImage || !prompt.trim() || isGenerating) return;
 
         setIsGenerating(true);
+        setSafetyWarning(false);
         try {
             let base64Data: string;
             let mimeType: string;
@@ -261,9 +263,29 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
             });
 
             setGeneratedImage(project.imageUrl);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error generating image:", error);
-            alert("Failed to generate image. Please try again.");
+
+            // Check for explicit safety violation
+            const isExplicitSafety = error.message && (
+                error.message.includes('SAFETY_VIOLATION') ||
+                error.message.includes('safety') ||
+                error.message.includes('blocked')
+            );
+
+            // Check for generic error on Nano Banana models (heuristic)
+            const isNanoBanana = selectedModel.includes('Nano Banana');
+            const isGenericEdgeError = error.message && (
+                error.message.includes('FunctionsHttpError') ||
+                error.message.includes('Edge Function returned') ||
+                error.message.includes('non-2xx')
+            );
+
+            if (isExplicitSafety || (isNanoBanana && isGenericEdgeError)) {
+                setSafetyWarning(true);
+            } else {
+                alert("Failed to generate image. Please try again.");
+            }
         } finally {
             setIsGenerating(false);
         }
@@ -287,6 +309,49 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
 
     return (
         <div className="fixed inset-0 bg-[#050505] text-white overflow-hidden flex flex-col z-40">
+            {/* Safety Warning Toast */}
+            <AnimatePresence>
+                {safetyWarning && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute top-24 left-0 right-0 z-[60] flex justify-center pointer-events-none"
+                    >
+                        <div className="relative overflow-hidden bg-[#0A0A0A]/90 backdrop-blur-2xl border border-red-500/20 px-6 py-4 rounded-2xl shadow-[0_8px_32px_rgba(255,0,0,0.15)] flex items-center gap-4 pointer-events-auto mt-2 group">
+                            {/* Liquid Background Effect */}
+                            <div className="absolute inset-0 opacity-20 pointer-events-none">
+                                <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 via-transparent to-red-600/20 animate-pulse" style={{ backgroundSize: '200% 100%' }} />
+                                <motion.div
+                                    className="absolute inset-0 bg-gradient-to-tr from-transparent via-red-500/10 to-transparent"
+                                    animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
+                                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                                    style={{ backgroundSize: '200% 200%' }}
+                                />
+                            </div>
+
+                            <div className="relative z-10 w-10 h-10 rounded-xl bg-gradient-to-br from-red-500/20 to-black border border-red-500/30 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(255,0,0,0.2)]">
+                                <Lock size={16} className="text-red-400 drop-shadow-[0_0_8px_rgba(255,50,50,0.5)]" />
+                            </div>
+
+                            <div className="relative z-10 flex flex-col">
+                                <span className="text-sm font-bold text-white tracking-wide">Content Flagged</span>
+                                <span className="text-[11px] text-red-200/60 font-medium">Safety guidelines blocked this request</span>
+                            </div>
+
+                            <div className="h-8 w-px bg-white/5 mx-2 relative z-10" />
+
+                            <button
+                                onClick={() => setSafetyWarning(false)}
+                                className="relative z-10 p-2 hover:bg-white/5 rounded-xl transition-colors text-white/40 hover:text-white"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Top Bar */}
             <div className="h-16 border-b border-white/5 bg-[#0A0A0A]/95 backdrop-blur-xl flex items-center justify-between px-6 z-50">
                 <div className="flex items-center gap-4">
@@ -456,25 +521,31 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
 
                         {/* Prompt Input Bar */}
                         <motion.div
-                            className="flex items-center gap-2 p-1.5 bg-[#111]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl w-[500px]"
+                            className={`flex items-center gap-2 p-1.5 bg-[#111]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl w-[500px] transition-all duration-500 relative overflow-hidden ${safetyWarning ? 'shadow-[0_0_40px_rgba(255,0,0,0.15)] border-red-500/30' : ''}`}
                             initial={{ y: 20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                         >
-                            <div className="w-8 h-8 rounded-xl bg-gradient-brand flex items-center justify-center shrink-0">
+                            {/* Red Liquid Glow for Warning */}
+                            <div className={`absolute inset-0 bg-gradient-to-r from-red-600/20 via-orange-500/10 to-red-600/20 opacity-0 transition-opacity duration-500 blur-xl ${safetyWarning ? 'opacity-100 animate-pulse' : ''}`} />
+
+                            <div className="w-8 h-8 rounded-xl bg-gradient-brand flex items-center justify-center shrink-0 relative z-10">
                                 <Wand2 size={16} className="text-white" />
                             </div>
                             <input
                                 type="text"
                                 value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
+                                onChange={(e) => {
+                                    setPrompt(e.target.value);
+                                    if (safetyWarning) setSafetyWarning(false);
+                                }}
                                 placeholder="Describe what you want to change or add..."
-                                className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder-gray-500 px-2"
+                                className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder-gray-500 px-2 relative z-10"
                                 onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
                             />
                             <button
                                 onClick={handleGenerate}
                                 disabled={!uploadedImage || !prompt.trim() || isGenerating}
-                                className={`px-4 py-1.5 bg-white text-black rounded-lg text-xs font-bold transition-colors ${!uploadedImage || !prompt.trim() || isGenerating ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-200'}`}
+                                className={`px-4 py-1.5 bg-white text-black rounded-lg text-xs font-bold transition-colors relative z-10 ${!uploadedImage || !prompt.trim() || isGenerating ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-200'}`}
                             >
                                 {isGenerating ? '...' : 'Generate'}
                             </button>

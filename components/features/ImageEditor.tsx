@@ -453,13 +453,13 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
             </AnimatePresence>
 
             {/* Top Bar */}
-            <div className="h-16 border-b border-white/5 bg-[#0A0A0A]/95 backdrop-blur-xl flex items-center justify-between px-6 z-50">
+            <div className="h-16 border-b border-white/5 bg-[#050505]/80 backdrop-blur-2xl flex items-center justify-between px-6 z-50 absolute top-0 left-0 right-0">
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gradient-brand rounded-lg flex items-center justify-center shadow-lg shadow-brand/20">
+                        <div className="w-8 h-8 bg-white/5 rounded-xl flex items-center justify-center border border-white/10">
                             <Wand2 size={16} className="text-white" />
                         </div>
-                        <span className="font-display font-bold text-lg tracking-tight">Editor</span>
+                        <span className="font-display font-medium text-sm tracking-wide text-white/90">Editor</span>
                     </div>
                 </div>
 
@@ -475,23 +475,23 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                     <button
                         onClick={handleDownload}
                         disabled={!uploadedImage}
-                        className="px-4 py-2 bg-white text-black rounded-lg font-bold text-sm hover:bg-gray-200 transition-colors flex items-center gap-2 shadow-lg shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 bg-white text-black rounded-lg font-medium text-xs hover:bg-gray-200 transition-colors flex items-center gap-2 shadow-lg shadow-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <Download size={16} />
-                        Download Image
+                        <Download size={14} />
+                        Download
                     </button>
                 </div>
             </div>
 
-            <div className="flex-1 flex overflow-hidden relative">
+            <div className="flex-1 flex overflow-hidden relative pt-16">
                 {/* Left Sidebar (Sessions) */}
-                <div className="w-24 border-r border-white/5 bg-[#0A0A0A] flex flex-col items-center py-6 gap-4 z-40 overflow-y-auto custom-scrollbar h-full shrink-0">
+                <div className="w-20 border-r border-white/5 bg-[#050505]/50 backdrop-blur-xl flex flex-col items-center py-6 gap-4 z-40 overflow-y-auto custom-scrollbar h-full shrink-0">
                     <button
                         onClick={resetEditor}
-                        className="w-12 h-12 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 flex items-center justify-center text-white/50 hover:text-white transition-all duration-200 shrink-0 mb-2 group"
+                        className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 flex items-center justify-center text-white/50 hover:text-white transition-all duration-200 shrink-0 mb-2 group shadow-lg"
                         title="New Session"
                     >
-                        <Plus size={20} className="group-hover:scale-110 transition-transform" />
+                        <Plus size={18} className="group-hover:rotate-90 transition-transform duration-300" />
                     </button>
 
                     <div className="w-8 h-px bg-white/5 shrink-0 mb-2" />
@@ -660,14 +660,14 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                     {/* Floating Toolbar (Bottom Center) */}
                     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col gap-4 items-center z-50">
                         <motion.div
-                            className={`flex items-center gap-2 p-1.5 bg-[#111]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl w-[500px] transition-all duration-500 relative overflow-hidden ${safetyWarning ? 'shadow-[0_0_40px_rgba(255,0,0,0.15)] border-red-500/30' : ''}`}
+                            className={`flex items-center gap-2 p-2 bg-[#1A1A1A]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl w-[500px] transition-all duration-500 relative overflow-hidden ${safetyWarning ? 'shadow-[0_0_40px_rgba(255,0,0,0.15)] border-red-500/30' : ''}`}
                             initial={{ y: 20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                         >
                             <div className={`absolute inset-0 bg-gradient-to-r from-red-600/20 via-orange-500/10 to-red-600/20 opacity-0 transition-opacity duration-500 blur-xl ${safetyWarning ? 'opacity-100 animate-pulse' : ''}`} />
 
-                            <div className="w-8 h-8 rounded-xl bg-gradient-brand flex items-center justify-center shrink-0 relative z-10">
-                                <Wand2 size={16} className="text-white" />
+                            <div className="w-10 h-10 rounded-xl bg-gradient-brand flex items-center justify-center shrink-0 relative z-10 shadow-lg shadow-brand/20">
+                                <Wand2 size={18} className="text-white" />
                             </div>
                             <input
                                 type="text"
@@ -677,13 +677,13 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                                     if (safetyWarning) setSafetyWarning(false);
                                 }}
                                 placeholder="Describe what you want to change or add..."
-                                className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder-gray-500 px-2 relative z-10"
+                                className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder-gray-500 px-2 relative z-10 font-medium h-full"
                                 onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
                             />
                             <button
                                 onClick={handleGenerate}
                                 disabled={!uploadedImage || !prompt.trim() || isGenerating}
-                                className={`px-4 py-1.5 bg-white text-black rounded-lg text-xs font-bold transition-colors relative z-10 ${!uploadedImage || !prompt.trim() || isGenerating ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-200'}`}
+                                className={`px-5 py-2.5 bg-white text-black rounded-xl text-xs font-bold transition-all relative z-10 hover:shadow-lg hover:shadow-white/10 ${!uploadedImage || !prompt.trim() || isGenerating ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100 hover:scale-105 active:scale-95'}`}
                             >
                                 {isGenerating ? '...' : 'Generate'}
                             </button>
@@ -691,7 +691,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
 
                         {!isPromptOnly && (
                             <motion.div
-                                className="flex items-center gap-1 p-2 bg-[#111]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl"
+                                className="flex items-center gap-1 p-2 bg-[#1A1A1A]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl"
                                 initial={{ y: 20, opacity: 0 }}
                                 animate={{ y: 0, opacity: 1 }}
                                 transition={{ delay: 0.1 }}
@@ -701,32 +701,32 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                                         key={tool.id}
                                         onClick={() => setSelectedTool(tool.id)}
                                         className={`
-                                            p-2.5 rounded-xl transition-all duration-200 relative group
+                                            p-3 rounded-xl transition-all duration-200 relative group
                                             ${selectedTool === tool.id
-                                                ? 'bg-white/10 text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]'
+                                                ? 'bg-white text-black shadow-lg shadow-white/10'
                                                 : 'text-gray-400 hover:text-white hover:bg-white/5'}
                                         `}
                                     >
                                         <tool.icon size={20} />
-                                        <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-black border border-white/10 rounded-md text-[10px] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                                        <span className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/90 backdrop-blur-md border border-white/10 rounded-xl text-[10px] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none text-white shadow-xl">
                                             {tool.label}
                                         </span>
                                     </button>
                                 ))}
-                                <div className="w-px h-6 bg-white/10 mx-1" />
+                                <div className="w-px h-8 bg-white/10 mx-2" />
                                 <div className="flex items-center gap-1">
                                     <button
                                         onClick={() => setZoom(z => Math.max(10, z - 10))}
-                                        className="p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                                        className="p-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
                                     >
-                                        <Minus size={16} />
+                                        <Minus size={18} />
                                     </button>
                                     <span className="text-xs font-mono w-12 text-center text-gray-400">{zoom}%</span>
                                     <button
                                         onClick={() => setZoom(z => Math.min(200, z + 10))}
-                                        className="p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                                        className="p-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
                                     >
-                                        <Plus size={16} />
+                                        <Plus size={18} />
                                     </button>
                                 </div>
                             </motion.div>
@@ -742,7 +742,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.9, y: 20 }}
                                     onClick={() => setShowModelMenu(true)}
-                                    className="flex items-center gap-3 px-4 py-3 bg-[#1A1A1A] border border-white/10 rounded-2xl shadow-xl hover:bg-[#222] transition-colors group"
+                                    className="flex items-center gap-3 px-4 py-3 bg-[#1A1A1A] border border-white/10 rounded-2xl shadow-xl hover:bg-[#222] transition-all group hover:border-white/20"
                                 >
                                     <div className="flex flex-col items-start">
                                         <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Model</span>
@@ -775,7 +775,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                                                     setShowModelMenu(false);
                                                 }}
                                                 className={`
-                                        group relative p-3 rounded-xl text-left transition-all duration-200 border w-full
+                                        group relative p-3 rounded-2xl text-left transition-all duration-200 border w-full
                                         ${model.name === selectedModel
                                                         ? 'bg-white/5 border-brand/50 shadow-[0_0_15px_rgba(255,0,85,0.1)]'
                                                         : 'bg-transparent border-transparent hover:bg-white/5 hover:border-white/5'}

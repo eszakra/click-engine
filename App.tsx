@@ -21,6 +21,7 @@ const App: React.FC = () => {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     const [selectedModel, setSelectedModel] = useState('Grok 2');
+    const [editingImage, setEditingImage] = useState<string | null>(null);
 
     // Load initial state
     useEffect(() => {
@@ -65,7 +66,7 @@ const App: React.FC = () => {
         }
     };
 
-    const handleGenerateRequest = async (prompt: string, aspectRatio: string, referenceImage?: string, referenceImageMimeType?: string): Promise<Project | null> => {
+    const handleGenerateRequest = async (prompt: string, aspectRatio: string, resolution?: string, referenceImage?: string, referenceImageMimeType?: string): Promise<Project | null> => {
         if (!currentUser) {
             setIsAuthModalOpen(true);
             return null;
@@ -82,6 +83,7 @@ const App: React.FC = () => {
                 authorAvatar: currentUser.avatar,
                 model: selectedModel,
                 aspectRatio: aspectRatio,
+                resolution: resolution,
                 referenceImage: referenceImage,
                 referenceImageMimeType: referenceImageMimeType
             });
@@ -98,6 +100,11 @@ const App: React.FC = () => {
             // Update status back to "online" after generating
             await AuthService.updateStatus('online');
         }
+    };
+
+    const handleEditImage = (imageUrl: string) => {
+        setEditingImage(imageUrl);
+        setCurrentView('edit');
     };
 
     return (
@@ -120,18 +127,29 @@ const App: React.FC = () => {
             {/* Adjusted padding: removed pl-96 since sidebar is now floating/compact */}
             <main className="max-w-7xl mx-auto pt-28 pb-6 px-6 min-h-screen relative">
                 {currentView === 'generate' && (
-                    <ImageGenerator onGenerate={handleGenerateRequest} isLoggedIn={!!currentUser} />
+                    <ImageGenerator
+                        onGenerate={handleGenerateRequest}
+                        isLoggedIn={!!currentUser}
+                        onEditImage={handleEditImage}
+                        selectedModel={selectedModel}
+                    />
                 )}
                 {currentView === 'projects' && (
                     <Projects
                         projects={projects}
                         currentUser={currentUser ? currentUser.name : ''}
                         onOpenAuth={() => setIsAuthModalOpen(true)}
+                        onEditImage={handleEditImage}
                     />
                 )}
                 {currentView === 'team' && (
                     currentUser ? (
-                        <DesignersList />
+                        <DesignersList
+                            projects={projects}
+                            currentUser={currentUser ? { name: currentUser.name, avatar: currentUser.avatar } : undefined}
+                            onUpdateProfile={handleUpdateProfile}
+                            onEditImage={handleEditImage}
+                        />
                     ) : (
                         <AccessRestricted onSignIn={() => setIsAuthModalOpen(true)} />
                     )
@@ -145,7 +163,7 @@ const App: React.FC = () => {
                 )}
                 {currentView === 'edit' && (
                     currentUser ? (
-                        <ImageEditor />
+                        <ImageEditor initialImage={editingImage} />
                     ) : (
                         <AccessRestricted onSignIn={() => setIsAuthModalOpen(true)} />
                     )

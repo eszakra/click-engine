@@ -51,7 +51,7 @@ export const ProjectsService = {
         }
     },
 
-    create: async (projectData: Omit<Project, 'id' | 'date'> & { aspectRatio?: string, referenceImage?: string, referenceImageMimeType?: string }): Promise<Project> => {
+    create: async (projectData: Omit<Project, 'id' | 'date'> & { aspectRatio?: string, referenceImage?: string, referenceImageMimeType?: string, resolution?: string }): Promise<Project> => {
         try {
             let imageUrl = '';
             const modelUsed = projectData.model;
@@ -98,7 +98,8 @@ export const ProjectsService = {
                         provider: provider,
                         referenceImage: projectData.referenceImage,
                         referenceImageMimeType: projectData.referenceImageMimeType,
-                        aspectRatio: aspectRatio
+                        aspectRatio: aspectRatio,
+                        resolution: projectData.resolution
                     }
                 });
 

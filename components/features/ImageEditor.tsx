@@ -23,7 +23,11 @@ interface HistoryItem {
     model: string;
 }
 
-const ImageEditor: React.FC = () => {
+interface ImageEditorProps {
+    initialImage?: string | null;
+}
+
+const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
     const [selectedTool, setSelectedTool] = useState('select');
     const [zoom, setZoom] = useState(100);
     const [brushSize, setBrushSize] = useState(20);
@@ -42,6 +46,15 @@ const ImageEditor: React.FC = () => {
         const saved = localStorage.getItem('image_editor_history');
         return saved ? JSON.parse(saved) : [];
     });
+
+    // Load initial image if provided
+    useEffect(() => {
+        if (initialImage) {
+            setUploadedImage(initialImage);
+            setGeneratedImage(null);
+            calculateAspectRatio(initialImage);
+        }
+    }, [initialImage]);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -159,7 +172,33 @@ const ImageEditor: React.FC = () => {
         if (uploadedImage) {
             event.preventDefault();
             const delta = event.deltaY > 0 ? -10 : 10;
-            setZoom(z => Math.min(200, Math.max(10, z + delta)));
+            setZoom(z => Math.min(500, Math.max(10, z + delta)));
+        }
+    };
+
+    const handleDownload = async () => {
+        const imageToDownload = generatedImage || uploadedImage;
+        if (!imageToDownload) return;
+
+        try {
+            const response = await fetch(imageToDownload);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `edited_image_${Date.now()}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Download failed:', error);
+            const link = document.createElement('a');
+            link.href = imageToDownload;
+            link.download = `edited_image_${Date.now()}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
     };
 
@@ -236,6 +275,8 @@ const ImageEditor: React.FC = () => {
         setTimeout(() => setCopiedId(null), 2000);
     };
 
+    const containerRef = useRef<HTMLDivElement>(null);
+
     return (
         <div className="fixed inset-0 bg-[#050505] text-white overflow-hidden flex flex-col z-40">
             {/* Top Bar */}
@@ -258,9 +299,13 @@ const ImageEditor: React.FC = () => {
                             <Redo size={16} />
                         </button>
                     </div>
-                    <button className="px-4 py-2 bg-white text-black rounded-lg font-bold text-sm hover:bg-gray-200 transition-colors flex items-center gap-2 shadow-lg shadow-white/10">
+                    <button
+                        onClick={handleDownload}
+                        disabled={!uploadedImage}
+                        className="px-4 py-2 bg-white text-black rounded-lg font-bold text-sm hover:bg-gray-200 transition-colors flex items-center gap-2 shadow-lg shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
                         <Download size={16} />
-                        Export
+                        Download Image
                     </button>
                 </div>
             </div>
@@ -306,10 +351,12 @@ const ImageEditor: React.FC = () => {
 
                 {/* Main Canvas Area */}
                 <div
+                    ref={containerRef}
                     className="flex-1 bg-[#050505] relative overflow-hidden flex items-center justify-center"
                     onDrop={handleDrop}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
+                    onWheel={handleWheel}
                 >
                     {/* Grid Background Pattern */}
                     <div className="absolute inset-0 opacity-10"
@@ -322,19 +369,24 @@ const ImageEditor: React.FC = () => {
                     {/* The Canvas */}
                     <motion.div
                         className={`relative max-w-[90%] max-h-[80%] rounded-lg overflow-hidden group flex items-center justify-center transition-all duration-300 ${!uploadedImage
-                                ? `cursor-pointer hover:bg-white/5 border-2 border-dashed ${isDragging ? 'border-brand bg-brand/10 scale-105' : 'border-white/10 hover:border-white/20'}`
-                                : 'bg-[#111] border border-white/5 shadow-2xl'
-                            }`}
+                            ? `cursor-pointer hover:bg-white/5 border-2 border-dashed ${isDragging ? 'border-brand bg-brand/10 scale-105' : 'border-white/10 hover:border-white/20'}`
+                            : 'bg-[#111] border border-white/5 shadow-2xl'
+                            } ${selectedTool === 'move' && uploadedImage ? 'cursor-grab active:cursor-grabbing' : ''}`}
                         initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ duration: 0.5 }}
+                        animate={{
+                            scale: uploadedImage ? zoom / 100 : 1,
+                            opacity: 1
+                        }}
+                        drag={selectedTool === 'move' && !!uploadedImage}
+                        dragConstraints={containerRef}
+                        dragElastic={0.1}
+                        dragMomentum={false}
+                        transition={{ duration: 0.05 }} // Near instant transition
                         style={{
                             width: uploadedImage ? 'auto' : '800px',
-                            height: uploadedImage ? 'auto' : '600px',
-                            transform: uploadedImage ? `scale(${zoom / 100})` : 'none'
+                            height: uploadedImage ? 'auto' : '600px'
                         }}
                         onClick={() => !uploadedImage && fileInputRef.current?.click()}
-                        onWheel={handleWheel}
                     >
                         {!uploadedImage ? (
                             <div className="flex flex-col items-center justify-center text-gray-500 p-20">

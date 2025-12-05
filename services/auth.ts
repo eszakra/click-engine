@@ -74,11 +74,16 @@ export const AuthService = {
         if (!user) return null;
 
         try {
-            console.log('📤 Uploading avatar to Supabase Storage...');
+            let avatarUrl = avatarBase64;
 
-            // Upload image to Supabase Storage
-            const avatarUrl = await uploadBase64Image(avatarBase64, 'avatars');
-            console.log('✅ Avatar uploaded:', avatarUrl);
+            // Only upload if it's a base64 string (not a URL)
+            if (!avatarBase64.startsWith('http')) {
+                console.log('📤 Uploading avatar to Supabase Storage...');
+                avatarUrl = await uploadBase64Image(avatarBase64, 'avatars');
+                console.log('✅ Avatar uploaded:', avatarUrl);
+            } else {
+                console.log('ℹ️ Avatar is already a URL, skipping upload.');
+            }
 
             // Update user in database
             const { error, count } = await supabase

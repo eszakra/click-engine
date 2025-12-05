@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Calendar, Download, Maximize2, Copy, Check, X } from 'lucide-react';
+import { User, Calendar, Download, Maximize2, Copy, Check, X, Wand2 } from 'lucide-react';
 import GlassCard from '../ui/GlassCard';
 import AccessRestricted from '../ui/AccessRestricted';
 
@@ -18,9 +18,10 @@ interface ProjectsProps {
     projects: Project[];
     currentUser: string;
     onOpenAuth?: () => void;
+    onEditImage?: (imageUrl: string) => void;
 }
 
-const Projects: React.FC<ProjectsProps> = ({ projects, currentUser, onOpenAuth }) => {
+const Projects: React.FC<ProjectsProps> = ({ projects, currentUser, onOpenAuth, onEditImage }) => {
     const [filter, setFilter] = useState<'all' | 'mine'>('all');
     const [selectedImage, setSelectedImage] = useState<Project | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -218,6 +219,14 @@ const Projects: React.FC<ProjectsProps> = ({ projects, currentUser, onOpenAuth }
                                 >
                                     {copiedId === selectedImage.id ? <Check size={16} /> : <Copy size={16} />} Copy Prompt
                                 </button>
+                                {onEditImage && (
+                                    <button
+                                        onClick={() => onEditImage(selectedImage.imageUrl)}
+                                        className="flex items-center gap-2 text-white hover:text-brand transition-colors text-sm font-medium pl-4 border-l border-white/10"
+                                    >
+                                        <Wand2 size={16} /> Edit
+                                    </button>
+                                )}
                             </div>
 
                             {/* Full Prompt Display */}

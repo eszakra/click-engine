@@ -1,10 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { DesignersService, Designer } from '../../services/designers';
-import GlassCard from '../ui/GlassCard';
+import UserProfileModal from './UserProfileModal';
+import { Project } from '../../services/projects';
 
-const DesignersList: React.FC = () => {
+interface DesignersListProps {
+    projects?: Project[];
+    currentUser?: { name: string; avatar: string };
+    onUpdateProfile?: (name: string, avatar: string) => Promise<void>;
+    onEditImage?: (imageUrl: string) => void;
+}
+
+const DesignersList: React.FC<DesignersListProps> = ({ projects = [], currentUser, onUpdateProfile, onEditImage }) => {
     const [designers, setDesigners] = useState<Designer[]>([]);
+    const [selectedDesigner, setSelectedDesigner] = useState<Designer | null>(null);
 
     const loadDesigners = async () => {
         const data = await DesignersService.getAll();
@@ -12,50 +21,79 @@ const DesignersList: React.FC = () => {
     };
 
     useEffect(() => {
-        // Load initially
         loadDesigners();
-
-        // Refresh every 5 seconds to show real-time updates
         const interval = setInterval(loadDesigners, 5000);
-
         return () => clearInterval(interval);
     }, []);
 
     return (
-        <div className="max-w-5xl mx-auto">
-            <div className="mb-8">
-                <h1 className="text-4xl font-display font-bold text-white mb-2">
-                    Active <span className="text-transparent bg-clip-text bg-gradient-brand">Team</span>
+        <div className="max-w-7xl mx-auto px-6">
+            <div className="mb-10 text-center">
+                <h1 className="text-4xl font-display font-semibold text-white mb-3 tracking-tight">
+                    The <span className="text-transparent bg-clip-text bg-gradient-brand">Team</span>
                 </h1>
-                <p className="text-gray-400">See who is creating magic right now.</p>
+                <p className="text-gray-400 text-base max-w-xl mx-auto font-medium">
+                    Creative minds behind the magic.
+                </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {designers.map((designer) => (
-                    <GlassCard key={designer.id} className="flex items-center gap-4 p-4" noPadding>
-                        <div className="relative">
-                            <img src={designer.avatar} alt={designer.name} className="w-12 h-12 rounded-full object-cover border border-white/10" />
-                            {designer.status === 'online' && (
-                                <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-black rounded-full"></span>
-                            )}
-                            {designer.status === 'generating' && (
-                                <span className="absolute bottom-0 right-0 w-3 h-3 bg-brand border-2 border-black rounded-full animate-pulse"></span>
-                            )}
-                        </div>
+                    <motion.div
+                        key={designer.id}
+                        layoutId={`designer-${designer.id}`}
+                        onClick={() => setSelectedDesigner(designer)}
+                        className="cursor-pointer group relative"
+                    >
+                        <div className="h-full bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl p-5 flex flex-col items-center text-center transition-all duration-300 hover:scale-[1.02] hover:shadow-xl backdrop-blur-sm">
 
-                        <div>
-                            <h3 className="text-white font-medium">{designer.name}</h3>
-                            <div className="flex items-center gap-2">
-                                {designer.status === 'generating' ? (
-                                    <span className="text-xs text-brand font-medium">Generating...</span>
-                                ) : (
-                                    <span className="text-xs text-gray-500">{designer.status === 'online' ? 'Online' : `Active ${designer.lastActive}`}</span>
-                                )}
+                            {/* Avatar */}
+                            <div className="relative mb-3">
+                                <div className="w-16 h-16 rounded-full p-0.5 bg-gradient-to-br from-white/10 to-white/5 border border-white/10 group-hover:border-brand/30 transition-colors">
+                                    <img
+                                        src={designer.avatar}
+                                        alt={designer.name}
+                                        className="w-full h-full rounded-full object-cover bg-gray-800"
+                                    />
+                                </div>
+                                {/* Status Dot */}
+                                <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-[2px] border-[#0A0A0A] ${designer.status === 'online' ? 'bg-green-500' :
+                                        designer.status === 'generating' ? 'bg-brand animate-pulse' : 'bg-gray-600'
+                                    }`} />
+                            </div>
+
+                            {/* Info */}
+                            <h3 className="text-sm font-semibold text-white mb-0.5 group-hover:text-brand transition-colors tracking-wide">{designer.name}</h3>
+                            <p className="text-[11px] text-gray-500 font-medium mb-3">
+                                {designer.status === 'generating' ? 'Generating...' :
+                                    designer.status === 'online' ? 'Online' :
+                                        `Active ${designer.lastActive}`}
+                            </p>
+
+                            {/* Mini Stats Badge */}
+                            <div className="mt-auto bg-black/20 px-3 py-1 rounded-full border border-white/5">
+                                <span className="text-[10px] font-semibold text-gray-400 group-hover:text-white transition-colors">
+                                    {projects.filter(p => p.author === designer.name).length} generations
+                                </span>
                             </div>
                         </div>
-                    </GlassCard>
+                    </motion.div>
                 ))}
             </div>
+
+            {/* Profile Modal */}
+            <AnimatePresence>
+                {selectedDesigner && (
+                    <UserProfileModal
+                        designer={selectedDesigner}
+                        projects={projects}
+                        currentUser={currentUser}
+                        onClose={() => setSelectedDesigner(null)}
+                        onUpdateProfile={onUpdateProfile}
+                        onEditImage={onEditImage}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 };

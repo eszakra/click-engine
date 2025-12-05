@@ -8,16 +8,19 @@ import AccessRestricted from '../ui/AccessRestricted';
 import { Project } from '../../services/projects';
 
 interface ImageGeneratorProps {
-    onGenerate: (prompt: string, aspectRatio: string) => Promise<Project | null>;
+    onGenerate: (prompt: string, aspectRatio: string, resolution?: string) => Promise<Project | null>;
     isLoggedIn: boolean;
+    onEditImage?: (imageUrl: string) => void;
+    selectedModel: string;
 }
 
-const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn }) => {
+const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn, onEditImage, selectedModel }) => {
     const [prompt, setPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedImages, setGeneratedImages] = useState<Project[]>([]);
     const [imageCount, setImageCount] = useState(1);
     const [aspectRatio, setAspectRatio] = useState('16:9');
+    const [resolution, setResolution] = useState('1k');
     const [selectedImage, setSelectedImage] = useState<Project | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -39,7 +42,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn 
 
     const handleGenerate = async () => {
         if (!isLoggedIn) {
-            onGenerate(prompt, aspectRatio);
+            onGenerate(prompt, aspectRatio, resolution);
             return;
         }
 
@@ -47,7 +50,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn 
 
         setIsGenerating(true);
         try {
-            const promises = Array.from({ length: imageCount }, () => onGenerate(prompt, aspectRatio));
+            const promises = Array.from({ length: imageCount }, () => onGenerate(prompt, aspectRatio, resolution));
             const results = await Promise.all(promises);
 
             const newProjects = results.filter((p): p is Project => p !== null);
@@ -153,6 +156,23 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn 
                                         </button>
                                     ))}
                                 </div>
+
+                                {selectedModel === 'Nano Banana Pro' && (
+                                    <div className="flex items-center bg-white/5 rounded-xl p-1 border border-white/5">
+                                        {['1k', '2k', '4k'].map((res) => (
+                                            <button
+                                                key={res}
+                                                onClick={() => setResolution(res)}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${resolution === res
+                                                    ? 'bg-white/10 text-white shadow-sm'
+                                                    : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
+                                                    }`}
+                                            >
+                                                {res}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
 
                                 <div className="flex items-center bg-white/5 rounded-xl p-1 border border-white/5">
                                     {[1, 2, 3, 4].map((count) => (
@@ -312,6 +332,14 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn 
                                 >
                                     {copiedId === selectedImage.id ? <Check size={16} /> : <Copy size={16} />} Copy Prompt
                                 </button>
+                                {onEditImage && (
+                                    <button
+                                        onClick={() => onEditImage(selectedImage.imageUrl)}
+                                        className="flex items-center gap-2 text-white hover:text-brand transition-colors text-sm font-medium pl-4 border-l border-white/10"
+                                    >
+                                        <Wand2 size={16} /> Edit
+                                    </button>
+                                )}
                             </div>
 
                             {/* Full Prompt Display */}

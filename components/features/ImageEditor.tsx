@@ -97,7 +97,12 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
 
     // Save sessions to localStorage whenever they change
     useEffect(() => {
-        localStorage.setItem('image_editor_sessions', JSON.stringify(sessions));
+        try {
+            localStorage.setItem('image_editor_sessions', JSON.stringify(sessions));
+        } catch (error) {
+            console.error('Failed to save sessions to localStorage:', error);
+            // Optional: Notify user or trim old sessions
+        }
     }, [sessions]);
 
     // Load initial image if provided
@@ -154,14 +159,10 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
     };
 
     const startNewSession = (imageUrl: string) => {
-        const newSession: Session = {
-            id: Date.now().toString(),
-            originalUrl: imageUrl,
-            versions: [],
-            timestamp: Date.now()
-        };
-        setSessions(prev => [newSession, ...prev]);
-        setCurrentSessionId(newSession.id);
+        // Just set the state, don't persist to sessions list yet
+        // It will be persisted only when the first edit is made
+        const newSessionId = Date.now().toString();
+        setCurrentSessionId(newSessionId);
         setUploadedImage(imageUrl);
         setGeneratedImage(null);
         setPrompt('');
@@ -302,21 +303,38 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
 
             // Add to current session versions
             if (currentSessionId) {
-                setSessions(prev => prev.map(session => {
-                    if (session.id === currentSessionId) {
-                        return {
-                            ...session,
-                            versions: [...session.versions, {
-                                id: Date.now().toString(),
-                                url: project.imageUrl,
-                                prompt: prompt,
-                                model: selectedModel,
-                                timestamp: Date.now()
-                            }]
+                setSessions(prev => {
+                    const existingSession = prev.find(s => s.id === currentSessionId);
+                    const newVersion = {
+                        id: Date.now().toString(),
+                        url: project.imageUrl,
+                        prompt: prompt,
+                        model: selectedModel,
+                        timestamp: Date.now()
+                    };
+
+                    if (existingSession) {
+                        // Session exists, append version
+                        return prev.map(session => {
+                            if (session.id === currentSessionId) {
+                                return {
+                                    ...session,
+                                    versions: [...session.versions, newVersion]
+                                };
+                            }
+                            return session;
+                        });
+                    } else {
+                        // Session doesn't exist (first edit), create it
+                        const newSession: Session = {
+                            id: currentSessionId,
+                            originalUrl: uploadedImage,
+                            versions: [newVersion],
+                            timestamp: Date.now()
                         };
+                        return [newSession, ...prev];
                     }
-                    return session;
-                }));
+                });
             }
 
         } catch (error: any) {

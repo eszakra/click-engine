@@ -18,10 +18,19 @@ interface Tool {
     label: string;
 }
 
-interface HistoryItem {
+interface Version {
+    id: string;
     url: string;
     prompt: string;
     model: string;
+    timestamp: number;
+}
+
+interface Session {
+    id: string;
+    originalUrl: string;
+    versions: Version[];
+    timestamp: number;
 }
 
 interface ImageEditorProps {
@@ -39,22 +48,62 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
     const [showModelMenu, setShowModelMenu] = useState(false);
     const [imageAspectRatio, setImageAspectRatio] = useState<string>('1:1');
-    const [copiedId, setCopiedId] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [safetyWarning, setSafetyWarning] = useState(false);
+    const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
-    // Load history from localStorage on mount
-    const [history, setHistory] = useState<HistoryItem[]>(() => {
-        const saved = localStorage.getItem('image_editor_history');
-        return saved ? JSON.parse(saved) : [];
+    // Load sessions from localStorage on mount and migrate legacy history if needed
+    const [sessions, setSessions] = useState<Session[]>(() => {
+        const savedSessions = localStorage.getItem('image_editor_sessions');
+        let initialSessions: Session[] = savedSessions ? JSON.parse(savedSessions) : [];
+
+        // Migration logic: Check for old history and convert to sessions
+        const legacyHistory = localStorage.getItem('image_editor_history');
+        if (legacyHistory) {
+            try {
+                const parsedHistory = JSON.parse(legacyHistory);
+                if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
+                    const migratedSessions: Session[] = parsedHistory.map((item: any, index: number) => ({
+                        id: `legacy-${Date.now()}-${index}`,
+                        originalUrl: item.url, // Best effort: treat generated image as original for legacy items
+                        versions: [{
+                            id: `legacy-v-${Date.now()}-${index}`,
+                            url: item.url,
+                            prompt: item.prompt || 'Legacy Image',
+                            model: item.model || 'Unknown',
+                            timestamp: Date.now()
+                        }],
+                        timestamp: Date.now() - (index * 1000) // Stagger timestamps slightly
+                    }));
+
+                    // Merge migrated sessions with existing ones, avoiding duplicates based on URL if possible, 
+                    // but simple concatenation is safer to avoid data loss.
+                    // Filter out any that might already exist in initialSessions to be safe (by URL)
+                    const existingUrls = new Set(initialSessions.map(s => s.originalUrl));
+                    const newUniqueSessions = migratedSessions.filter(s => !existingUrls.has(s.originalUrl));
+
+                    initialSessions = [...initialSessions, ...newUniqueSessions];
+
+                    // Clear legacy history to prevent re-migration next time
+                    localStorage.removeItem('image_editor_history');
+                }
+            } catch (e) {
+                console.error("Failed to migrate legacy history:", e);
+            }
+        }
+
+        return initialSessions;
     });
+
+    // Save sessions to localStorage whenever they change
+    useEffect(() => {
+        localStorage.setItem('image_editor_sessions', JSON.stringify(sessions));
+    }, [sessions]);
 
     // Load initial image if provided
     useEffect(() => {
         if (initialImage) {
-            setUploadedImage(initialImage);
-            setGeneratedImage(null);
-            calculateAspectRatio(initialImage);
+            startNewSession(initialImage);
         }
     }, [initialImage]);
 
@@ -79,31 +128,10 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
 
     const isPromptOnly = promptOnlyModels.includes(selectedModel);
 
-    // Save history to localStorage whenever it changes
-    useEffect(() => {
-        localStorage.setItem('image_editor_history', JSON.stringify(history));
-    }, [history]);
-
-    useEffect(() => {
-        // Add generated image to history if it's new
-        if (generatedImage) {
-            const exists = history.some(item => item.url === generatedImage);
-            if (!exists) {
-                setHistory(prev => [{
-                    url: generatedImage,
-                    prompt: prompt,
-                    model: selectedModel
-                }, ...prev]);
-            }
-        }
-    }, [generatedImage]);
-
     const calculateAspectRatio = (src: string) => {
         const img = new Image();
         img.onload = () => {
             const ratio = img.width / img.height;
-
-            // Define standard aspect ratios
             const ratios: Record<string, number> = {
                 '16:9': 16 / 9,
                 '4:3': 4 / 3,
@@ -111,11 +139,8 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                 '3:4': 3 / 4,
                 '9:16': 9 / 16
             };
-
-            // Find closest standard ratio
             let closest = '1:1';
             let minDiff = Infinity;
-
             for (const [key, val] of Object.entries(ratios)) {
                 const diff = Math.abs(ratio - val);
                 if (diff < minDiff) {
@@ -123,11 +148,24 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                     closest = key;
                 }
             }
-
             setImageAspectRatio(closest);
-            console.log(`Detected Aspect Ratio: ${closest} (Raw: ${ratio})`);
         };
         img.src = src;
+    };
+
+    const startNewSession = (imageUrl: string) => {
+        const newSession: Session = {
+            id: Date.now().toString(),
+            originalUrl: imageUrl,
+            versions: [],
+            timestamp: Date.now()
+        };
+        setSessions(prev => [newSession, ...prev]);
+        setCurrentSessionId(newSession.id);
+        setUploadedImage(imageUrl);
+        setGeneratedImage(null);
+        setPrompt('');
+        calculateAspectRatio(imageUrl);
     };
 
     const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -136,9 +174,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const result = e.target?.result as string;
-                setUploadedImage(result);
-                setGeneratedImage(null); // Reset generated image on new upload
-                calculateAspectRatio(result);
+                startNewSession(result);
             };
             reader.readAsDataURL(file);
         }
@@ -152,9 +188,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const result = e.target?.result as string;
-                setUploadedImage(result);
-                setGeneratedImage(null);
-                calculateAspectRatio(result);
+                startNewSession(result);
             };
             reader.readAsDataURL(file);
         }
@@ -213,13 +247,9 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
             let base64Data: string;
             let mimeType: string;
 
-            // If there's a generated image, we need to fetch it and convert to base64
             if (generatedImage) {
-                // Fetch the image from URL
                 const response = await fetch(generatedImage);
                 const blob = await response.blob();
-
-                // Convert blob to base64
                 const base64 = await new Promise<string>((resolve) => {
                     const reader = new FileReader();
                     reader.onloadend = () => {
@@ -228,19 +258,15 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                     };
                     reader.readAsDataURL(blob);
                 });
-
-                // Extract base64 data and mime type
                 const [mimeTypePrefix, data] = base64.split(';base64,');
                 mimeType = mimeTypePrefix.split(':')[1];
                 base64Data = data;
             } else {
-                // Use the uploaded image (first edit)
                 const [mimeTypePrefix, data] = uploadedImage.split(';base64,');
                 mimeType = mimeTypePrefix.split(':')[1];
                 base64Data = data;
             }
 
-            // Get current user (mock or from local storage)
             const userJson = localStorage.getItem('click_tools_current_user');
             const user = userJson ? JSON.parse(userJson) : { name: 'Guest', avatar_url: '' };
 
@@ -249,13 +275,12 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                 model: selectedModel,
                 author: user.name,
                 authorAvatar: user.avatar_url,
-                imageUrl: '', // Placeholder, will be generated by backend
+                imageUrl: '',
                 referenceImage: base64Data,
                 referenceImageMimeType: mimeType,
-                aspectRatio: imageAspectRatio // Use calculated aspect ratio
+                aspectRatio: imageAspectRatio
             });
 
-            // Preload the new image to ensure smooth transition
             await new Promise((resolve, reject) => {
                 const img = new Image();
                 img.onload = resolve;
@@ -263,30 +288,44 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                 img.src = project.imageUrl;
             });
 
-            // Update local user credits if returned by backend
             if (project.credits !== undefined) {
                 const userJson = localStorage.getItem('click_tools_current_user');
                 if (userJson) {
                     const user = JSON.parse(userJson);
                     user.credits = project.credits;
                     localStorage.setItem('click_tools_current_user', JSON.stringify(user));
-                    // Force re-render of credits (hacky but works for now, ideally use context)
                     window.dispatchEvent(new Event('storage'));
                 }
             }
 
             setGeneratedImage(project.imageUrl);
+
+            // Add to current session versions
+            if (currentSessionId) {
+                setSessions(prev => prev.map(session => {
+                    if (session.id === currentSessionId) {
+                        return {
+                            ...session,
+                            versions: [...session.versions, {
+                                id: Date.now().toString(),
+                                url: project.imageUrl,
+                                prompt: prompt,
+                                model: selectedModel,
+                                timestamp: Date.now()
+                            }]
+                        };
+                    }
+                    return session;
+                }));
+            }
+
         } catch (error: any) {
             console.error("Error generating image:", error);
-
-            // Check for explicit safety violation
             const isExplicitSafety = error.message && (
                 error.message.includes('SAFETY_VIOLATION') ||
                 error.message.includes('safety') ||
                 error.message.includes('blocked')
             );
-
-            // Check for generic error on Nano Banana models (heuristic)
             const isNanoBanana = selectedModel.includes('Nano Banana');
             const isGenericEdgeError = error.message && (
                 error.message.includes('FunctionsHttpError') ||
@@ -304,21 +343,37 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
         }
     };
 
-    const restoreHistoryItem = (item: HistoryItem) => {
-        setGeneratedImage(item.url);
-        setUploadedImage(item.url); // Set as current base for further edits
-        setPrompt(item.prompt);
-        setSelectedModel(item.model);
-        calculateAspectRatio(item.url);
+    const restoreSession = (session: Session) => {
+        setCurrentSessionId(session.id);
+        setUploadedImage(session.originalUrl);
+        // Restore the last version if it exists, otherwise show original
+        if (session.versions.length > 0) {
+            const lastVersion = session.versions[session.versions.length - 1];
+            setGeneratedImage(lastVersion.url);
+            setPrompt(lastVersion.prompt);
+        } else {
+            setGeneratedImage(null);
+            setPrompt('');
+        }
+        calculateAspectRatio(session.originalUrl);
     };
 
-    const handleCopyPrompt = (prompt: string, idx: number) => {
-        navigator.clipboard.writeText(prompt);
-        setCopiedId(`history-${idx}`);
-        setTimeout(() => setCopiedId(null), 2000);
+    const restoreVersion = (version: Version) => {
+        setGeneratedImage(version.url);
+        setPrompt(version.prompt);
+    };
+
+    const resetEditor = () => {
+        setUploadedImage(null);
+        setGeneratedImage(null);
+        setPrompt('');
+        setSafetyWarning(false);
+        setCurrentSessionId(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const containerRef = useRef<HTMLDivElement>(null);
+    const currentSession = sessions.find(s => s.id === currentSessionId);
 
     return (
         <div className="fixed inset-0 bg-[#050505] text-white overflow-hidden flex flex-col z-40">
@@ -332,7 +387,6 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                         className="absolute top-24 left-0 right-0 z-[60] flex justify-center pointer-events-none"
                     >
                         <div className="relative overflow-hidden bg-[#0A0A0A]/90 backdrop-blur-2xl border border-red-500/20 px-6 py-4 rounded-2xl shadow-[0_8px_32px_rgba(255,0,0,0.15)] flex items-center gap-4 pointer-events-auto mt-2 group">
-                            {/* Liquid Background Effect */}
                             <div className="absolute inset-0 opacity-20 pointer-events-none">
                                 <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 via-transparent to-red-600/20 animate-pulse" style={{ backgroundSize: '200% 100%' }} />
                                 <motion.div
@@ -342,18 +396,14 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                                     style={{ backgroundSize: '200% 200%' }}
                                 />
                             </div>
-
                             <div className="relative z-10 w-10 h-10 rounded-xl bg-gradient-to-br from-red-500/20 to-black border border-red-500/30 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(255,0,0,0.2)]">
                                 <Lock size={16} className="text-red-400 drop-shadow-[0_0_8px_rgba(255,50,50,0.5)]" />
                             </div>
-
                             <div className="relative z-10 flex flex-col">
                                 <span className="text-sm font-bold text-white tracking-wide">Content Flagged</span>
                                 <span className="text-[11px] text-red-200/60 font-medium">Safety guidelines blocked this request</span>
                             </div>
-
                             <div className="h-8 w-px bg-white/5 mx-2 relative z-10" />
-
                             <button
                                 onClick={() => setSafetyWarning(false)}
                                 className="relative z-10 p-2 hover:bg-white/5 rounded-xl transition-colors text-white/40 hover:text-white"
@@ -397,10 +447,18 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
             </div>
 
             <div className="flex-1 flex overflow-hidden relative">
-                {/* Left Sidebar (History) */}
-                {/* Left Sidebar (History) */}
+                {/* Left Sidebar (Sessions) */}
                 <div className="w-24 border-r border-white/5 bg-[#0A0A0A] flex flex-col items-center py-6 gap-4 z-40 overflow-y-auto custom-scrollbar h-full shrink-0">
-                    {/* Hidden Input for Upload */}
+                    <button
+                        onClick={resetEditor}
+                        className="w-12 h-12 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 flex items-center justify-center text-white/50 hover:text-white transition-all duration-200 shrink-0 mb-2 group"
+                        title="New Session"
+                    >
+                        <Plus size={20} className="group-hover:scale-110 transition-transform" />
+                    </button>
+
+                    <div className="w-8 h-px bg-white/5 shrink-0 mb-2" />
+
                     <input
                         type="file"
                         ref={fileInputRef}
@@ -409,29 +467,18 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                         onChange={handleImageUpload}
                     />
 
-                    {/* History Items - Only Generated Images */}
-                    {history.map((item, idx) => (
+                    {sessions.map((session) => (
                         <button
-                            key={idx}
-                            onClick={() => restoreHistoryItem(item)}
-                            className="w-16 h-16 rounded-xl border border-white/10 overflow-hidden hover:border-brand transition-all hover:scale-105 shrink-0 relative group shadow-sm"
-                            title={item.prompt}
+                            key={session.id}
+                            onClick={() => restoreSession(session)}
+                            className={`w-16 h-16 rounded-xl border overflow-hidden transition-all hover:scale-105 shrink-0 relative group shadow-sm ${currentSessionId === session.id ? 'border-brand ring-2 ring-brand/20' : 'border-white/10 hover:border-white/30'}`}
+                            title={session.versions.length > 0 ? session.versions[0].prompt : `Session from ${new Date(session.timestamp).toLocaleTimeString()}`}
                         >
-                            <img src={getOptimizedImageUrl(item.url, 200)} alt={`History ${idx}`} className="w-full h-full object-cover" loading="lazy" />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-
-                            {/* Copy Prompt Button */}
-                            <div
-                                onClick={(e) => { e.stopPropagation(); handleCopyPrompt(item.prompt, idx); }}
-                                className="absolute bottom-1 right-1 p-1 bg-black/60 hover:bg-black/80 rounded-md text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm border border-white/10"
-                                title="Copy Prompt"
-                            >
-                                {copiedId === `history-${idx}` ? <Check size={10} className="text-green-400" /> : <Copy size={10} />}
-                            </div>
+                            <img src={getOptimizedImageUrl(session.originalUrl, 200)} alt="Session" className="w-full h-full object-cover" loading="lazy" />
+                            <div className={`absolute inset-0 transition-colors ${currentSessionId === session.id ? 'bg-transparent' : 'bg-black/40 group-hover:bg-black/20'}`} />
                         </button>
                     ))}
 
-                    {/* Spacer at bottom */}
                     <div className="h-20 shrink-0" />
                 </div>
 
@@ -444,7 +491,6 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                     onDragLeave={handleDragLeave}
                     onWheel={handleWheel}
                 >
-                    {/* Grid Background Pattern */}
                     <div className="absolute inset-0 opacity-10"
                         style={{
                             backgroundImage: 'radial-gradient(#333 1px, transparent 1px)',
@@ -452,7 +498,6 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                         }}
                     />
 
-                    {/* The Canvas */}
                     <motion.div
                         className={`relative max-w-[90%] max-h-[80%] rounded-lg overflow-hidden group flex items-center justify-center transition-all duration-300 ${!uploadedImage
                             ? `cursor-pointer hover:bg-white/5 border-2 border-dashed ${isDragging ? 'border-brand bg-brand/10 scale-105' : 'border-white/10 hover:border-white/20'}`
@@ -467,7 +512,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                         dragConstraints={containerRef}
                         dragElastic={0.1}
                         dragMomentum={false}
-                        transition={{ duration: 0.05 }} // Near instant transition
+                        transition={{ duration: 0.05 }}
                         style={{
                             width: uploadedImage ? 'auto' : '800px',
                             height: uploadedImage ? 'auto' : '600px'
@@ -489,7 +534,6 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                                 />
                                 {isGenerating && (
                                     <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-20">
-                                        {/* Subtle Liquid Shimmer */}
                                         <motion.div
                                             className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent"
                                             animate={{
@@ -499,7 +543,6 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                                             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
                                             style={{ backgroundSize: '200% 200%' }}
                                         />
-
                                         <div className="flex flex-col items-center justify-center z-30">
                                             <PremiumLoader size={60} />
                                         </div>
@@ -519,7 +562,6 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                             </div>
                         )}
 
-                        {/* Interactive Overlay for Tools (Only if image loaded and not generating) */}
                         {uploadedImage && selectedTool === 'brush' && !isGenerating && (
                             <div className="absolute inset-0 cursor-crosshair pointer-events-none">
                                 <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full text-xs border border-white/10 pointer-events-auto">
@@ -529,16 +571,57 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                         )}
                     </motion.div>
 
+                    {/* Right Floating Versions Panel */}
+                    <AnimatePresence>
+                        {currentSession && (
+                            <motion.div
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-40 max-h-[80vh] overflow-y-auto custom-scrollbar p-2"
+                            >
+                                {/* Original Version */}
+                                <button
+                                    onClick={() => {
+                                        setGeneratedImage(null);
+                                        setPrompt('');
+                                    }}
+                                    className={`w-20 h-20 rounded-lg border overflow-hidden transition-all hover:scale-105 shrink-0 relative group shadow-lg ${!generatedImage ? 'border-brand ring-2 ring-brand/20' : 'border-white/10 hover:border-white/30'}`}
+                                    title="Original Image"
+                                >
+                                    <img src={getOptimizedImageUrl(currentSession.originalUrl, 200)} alt="Original" className="w-full h-full object-cover" loading="lazy" />
+                                    <div className={`absolute inset-0 transition-colors ${!generatedImage ? 'bg-transparent' : 'bg-black/40 group-hover:bg-black/20'}`} />
+                                    <div className="absolute bottom-1 right-1 bg-black/60 px-1.5 py-0.5 rounded text-[10px] text-white/80 backdrop-blur-sm truncate max-w-[90%]">
+                                        Original
+                                    </div>
+                                </button>
+
+                                {/* Generated Versions */}
+                                {currentSession.versions.map((version, idx) => (
+                                    <button
+                                        key={version.id}
+                                        onClick={() => restoreVersion(version)}
+                                        className={`w-20 h-20 rounded-lg border overflow-hidden transition-all hover:scale-105 shrink-0 relative group shadow-lg ${generatedImage === version.url ? 'border-brand ring-2 ring-brand/20' : 'border-white/10 hover:border-white/30'}`}
+                                        title={version.prompt}
+                                    >
+                                        <img src={getOptimizedImageUrl(version.url, 200)} alt={`Version ${idx + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                                        <div className={`absolute inset-0 transition-colors ${generatedImage === version.url ? 'bg-transparent' : 'bg-black/40 group-hover:bg-black/20'}`} />
+                                        <div className="absolute bottom-1 right-1 bg-black/60 px-1.5 py-0.5 rounded text-[10px] text-white/80 backdrop-blur-sm truncate max-w-[90%]">
+                                            {version.prompt.slice(0, 15)}{version.prompt.length > 15 ? '...' : ''}
+                                        </div>
+                                    </button>
+                                ))}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
                     {/* Floating Toolbar (Bottom Center) */}
                     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col gap-4 items-center z-50">
-
-                        {/* Prompt Input Bar */}
                         <motion.div
                             className={`flex items-center gap-2 p-1.5 bg-[#111]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl w-[500px] transition-all duration-500 relative overflow-hidden ${safetyWarning ? 'shadow-[0_0_40px_rgba(255,0,0,0.15)] border-red-500/30' : ''}`}
                             initial={{ y: 20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                         >
-                            {/* Red Liquid Glow for Warning */}
                             <div className={`absolute inset-0 bg-gradient-to-r from-red-600/20 via-orange-500/10 to-red-600/20 opacity-0 transition-opacity duration-500 blur-xl ${safetyWarning ? 'opacity-100 animate-pulse' : ''}`} />
 
                             <div className="w-8 h-8 rounded-xl bg-gradient-brand flex items-center justify-center shrink-0 relative z-10">
@@ -564,7 +647,6 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                             </button>
                         </motion.div>
 
-                        {/* Tools Dock - Only show if not in prompt-only mode */}
                         {!isPromptOnly && (
                             <motion.div
                                 className="flex items-center gap-1 p-2 bg-[#111]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl"
@@ -584,16 +666,12 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                                         `}
                                     >
                                         <tool.icon size={20} />
-
-                                        {/* Tooltip */}
                                         <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-black border border-white/10 rounded-md text-[10px] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
                                             {tool.label}
                                         </span>
                                     </button>
                                 ))}
-
                                 <div className="w-px h-6 bg-white/10 mx-1" />
-
                                 <div className="flex items-center gap-1">
                                     <button
                                         onClick={() => setZoom(z => Math.max(10, z - 10))}
@@ -613,7 +691,6 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                         )}
                     </div>
 
-                    {/* Bottom Left Model Selector Pill */}
                     <div className="absolute bottom-8 left-8 z-50">
                         <AnimatePresence mode="wait">
                             {!showModelMenu ? (
@@ -639,7 +716,6 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                                     exit={{ opacity: 0, y: 20, scale: 0.95 }}
                                     className="w-80 bg-[#0A0A0A]/95 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[60vh] absolute bottom-0 left-0"
                                 >
-                                    {/* Header */}
                                     <div
                                         onClick={() => setShowModelMenu(false)}
                                         className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/5 transition-colors border-b border-white/5"
@@ -648,7 +724,6 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                                         <ChevronDown size={14} className="text-gray-500" />
                                     </div>
 
-                                    {/* List */}
                                     <div className="overflow-y-auto custom-scrollbar p-2 space-y-2 flex-1">
                                         {models.map((model, index) => (
                                             <button
@@ -690,7 +765,6 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                                         ))}
                                     </div>
 
-                                    {/* Footer */}
                                     <div className="p-3 border-t border-white/5 bg-black/20">
                                         <div className="flex items-center justify-between text-xs text-gray-400">
                                             <span className="flex items-center gap-1">

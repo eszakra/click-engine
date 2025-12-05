@@ -11,11 +11,11 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedModel, onSelectModel }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     const models = [
-        { name: 'FLUX 2.0', desc: 'Next-gen image synthesis', time: '15s', cost: '2 units', active: true, tags: ['Ultra Quality', 'Inpainting'], isNew: true, supportedAspectRatios: ['16:9', '4:3', '1:1'], supportedResolutions: ['1k', '2k'] },
-        { name: 'FLUX 1.0', desc: 'High fidelity generation', time: '12s', cost: '1 unit', active: false, tags: ['Balanced', 'Inpainting'], supportedAspectRatios: ['16:9', '4:3', '1:1'], supportedResolutions: ['1k'] },
-        { name: 'Grok 2', desc: 'Smartest model, best for complex prompts', time: '10s', cost: '1 unit', active: false, tags: ['High Quality', 'Smart'], supportedAspectRatios: ['16:9', '4:3', '1:1'], supportedResolutions: ['1k'] },
-        { name: 'Nano Banana Pro', desc: 'Native 4K image generation', time: '30s', cost: '119 units', active: false, tags: ['2 images'], supportedAspectRatios: ['16:9', '4:3', '1:1'], supportedResolutions: ['1k', '2k', '4k'] },
+        { name: 'Nano Banana Pro', desc: 'Native 4K image generation', time: '30s', cost: '119 units', active: true, tags: ['2 images'], supportedAspectRatios: ['16:9', '4:3', '1:1'], supportedResolutions: ['1k', '2k', '4k'] },
         { name: 'Nano Banana', desc: 'Smart model, best for image editing', time: '10s', cost: '32 units', active: false, tags: ['2 images'], supportedAspectRatios: ['1:1'], supportedResolutions: ['1k'] },
+        { name: 'Grok 2', desc: 'Smartest model, best for complex prompts', time: '10s', cost: '1 unit', active: false, tags: ['High Quality', 'Smart'], supportedAspectRatios: ['16:9', '4:3', '1:1'], supportedResolutions: ['1k'] },
+        { name: 'FLUX 2.0', desc: 'Next-gen image synthesis', time: '15s', cost: '2 units', active: false, tags: ['Ultra Quality', 'Inpainting'], isNew: true, supportedAspectRatios: ['16:9', '4:3', '1:1'], supportedResolutions: ['1k', '2k'] },
+        { name: 'FLUX 1.0', desc: 'High fidelity generation', time: '12s', cost: '1 unit', active: false, tags: ['Balanced', 'Inpainting'], supportedAspectRatios: ['16:9', '4:3', '1:1'], supportedResolutions: ['1k'] },
     ];
 
     return (
@@ -101,7 +101,14 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedModel, onSelectModel }) => {
                         {/* Footer */}
                         <div className="p-3 border-t border-white/5 bg-black/20">
                             <div className="flex items-center justify-between text-xs text-gray-400">
-                                <span className="flex items-center gap-1"><Zap size={12} className="text-yellow-400" /> 2,450 Credits</span>
+                                <span className="flex items-center gap-1">
+                                    <Zap size={12} className="text-yellow-400" />
+                                    {(() => {
+                                        const userJson = localStorage.getItem('click_tools_current_user');
+                                        const user = userJson ? JSON.parse(userJson) : null;
+                                        return user?.credits ? user.credits.toLocaleString() : '0';
+                                    })()} Credits
+                                </span>
                                 <button className="text-brand hover:text-brand-light transition-colors font-medium">Upgrade</button>
                             </div>
                         </div>

@@ -4,11 +4,16 @@ import { PieChart, BarChart, Activity, Zap, Layers } from 'lucide-react';
 import GlassCard from '../ui/GlassCard';
 
 const UsageDashboard: React.FC = () => {
-    // Mock Data
+    // Get user credits
+    const userJson = localStorage.getItem('click_tools_current_user');
+    const user = userJson ? JSON.parse(userJson) : null;
+    const credits = user?.credits || 0;
+
+    // Mock Data (Updated with real credits)
     const stats = [
         { label: 'Total Credits', value: '5,000', sub: 'Monthly Quota', icon: <Zap size={20} className="text-yellow-400" /> },
-        { label: 'Credits Used', value: '2,450', sub: '49% Used', icon: <Activity size={20} className="text-brand" /> },
-        { label: 'Remaining', value: '2,550', sub: 'Expires in 12 days', icon: <Layers size={20} className="text-blue-400" /> },
+        { label: 'Credits Used', value: (5000 - credits).toLocaleString(), sub: `${Math.round(((5000 - credits) / 5000) * 100)}% Used`, icon: <Activity size={20} className="text-brand" /> },
+        { label: 'Remaining', value: credits.toLocaleString(), sub: 'Expires in 12 days', icon: <Layers size={20} className="text-blue-400" /> },
     ];
 
     const modelUsage = [
@@ -60,7 +65,7 @@ const UsageDashboard: React.FC = () => {
                                 <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                                     <motion.div
                                         initial={{ width: 0 }}
-                                        animate={{ width: `${(model.used / 2450) * 100}%` }}
+                                        animate={{ width: `${(model.used / 5000) * 100}%` }}
                                         transition={{ duration: 1, delay: index * 0.1 }}
                                         className={`h-full ${model.color}`}
                                     />

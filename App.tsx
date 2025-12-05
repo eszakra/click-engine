@@ -20,7 +20,7 @@ const App: React.FC = () => {
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-    const [selectedModel, setSelectedModel] = useState('Grok 2');
+    const [selectedModel, setSelectedModel] = useState('Nano Banana Pro');
     const [editingImage, setEditingImage] = useState<string | null>(null);
 
     // Load initial state

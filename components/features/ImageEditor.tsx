@@ -10,6 +10,7 @@ import {
 import GlassCard from '../ui/GlassCard';
 import PremiumLoader from '../ui/PremiumLoader';
 import { ProjectsService } from '../../services/projects';
+import { getOptimizedImageUrl } from '../../utils/imageOptimizer';
 
 interface Tool {
     id: string;
@@ -60,11 +61,11 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const models = [
-        { name: 'FLUX 2.0', desc: 'Next-gen image synthesis', time: '15s', cost: '2 units', active: true, tags: ['Ultra Quality', 'Inpainting'], isNew: true },
-        { name: 'FLUX 1.0', desc: 'High fidelity generation', time: '12s', cost: '1 unit', active: false, tags: ['Balanced', 'Inpainting'] },
-        { name: 'Grok 2', desc: 'Smartest model, best for complex prompts', time: '10s', cost: '1 unit', active: false, tags: ['High Quality', 'Smart'] },
-        { name: 'Nano Banana Pro', desc: 'Native 4K image generation', time: '30s', cost: '119 units', active: false, tags: ['2 images'] },
+        { name: 'Nano Banana Pro', desc: 'Native 4K image generation', time: '30s', cost: '119 units', active: true, tags: ['2 images'] },
         { name: 'Nano Banana', desc: 'Smart model, best for image editing', time: '10s', cost: '32 units', active: false, tags: ['2 images'] },
+        { name: 'Grok 2', desc: 'Smartest model, best for complex prompts', time: '10s', cost: '1 unit', active: false, tags: ['High Quality', 'Smart'] },
+        { name: 'FLUX 2.0', desc: 'Next-gen image synthesis', time: '15s', cost: '2 units', active: false, tags: ['Ultra Quality', 'Inpainting'], isNew: true },
+        { name: 'FLUX 1.0', desc: 'High fidelity generation', time: '12s', cost: '1 unit', active: false, tags: ['Balanced', 'Inpainting'] },
     ];
     const promptOnlyModels = ['Nano Banana', 'Nano Banana Pro'];
 
@@ -262,6 +263,18 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                 img.src = project.imageUrl;
             });
 
+            // Update local user credits if returned by backend
+            if (project.credits !== undefined) {
+                const userJson = localStorage.getItem('click_tools_current_user');
+                if (userJson) {
+                    const user = JSON.parse(userJson);
+                    user.credits = project.credits;
+                    localStorage.setItem('click_tools_current_user', JSON.stringify(user));
+                    // Force re-render of credits (hacky but works for now, ideally use context)
+                    window.dispatchEvent(new Event('storage'));
+                }
+            }
+
             setGeneratedImage(project.imageUrl);
         } catch (error: any) {
             console.error("Error generating image:", error);
@@ -404,7 +417,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                             className="w-16 h-16 rounded-xl border border-white/10 overflow-hidden hover:border-brand transition-all hover:scale-105 shrink-0 relative group shadow-sm"
                             title={item.prompt}
                         >
-                            <img src={item.url} alt={`History ${idx}`} className="w-full h-full object-cover" />
+                            <img src={getOptimizedImageUrl(item.url, 200)} alt={`History ${idx}`} className="w-full h-full object-cover" loading="lazy" />
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
 
                             {/* Copy Prompt Button */}
@@ -680,7 +693,14 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                                     {/* Footer */}
                                     <div className="p-3 border-t border-white/5 bg-black/20">
                                         <div className="flex items-center justify-between text-xs text-gray-400">
-                                            <span className="flex items-center gap-1"><Zap size={12} className="text-yellow-400" /> 2,450 Credits</span>
+                                            <span className="flex items-center gap-1">
+                                                <Zap size={12} className="text-yellow-400" />
+                                                {(() => {
+                                                    const userJson = localStorage.getItem('click_tools_current_user');
+                                                    const user = userJson ? JSON.parse(userJson) : null;
+                                                    return user?.credits ? user.credits.toLocaleString() : '0';
+                                                })()} Credits
+                                            </span>
                                             <button className="text-brand hover:text-brand-light transition-colors font-medium">Upgrade</button>
                                         </div>
                                     </div>

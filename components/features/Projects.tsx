@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, Calendar, Download, Maximize2, Copy, Check, X, Wand2 } from 'lucide-react';
 import GlassCard from '../ui/GlassCard';
 import AccessRestricted from '../ui/AccessRestricted';
+import { getOptimizedImageUrl, getOriginalImageUrl } from '../../utils/imageOptimizer';
 
 export interface Project {
     id: string;
@@ -103,13 +104,14 @@ const Projects: React.FC<ProjectsProps> = ({ projects, currentUser, onOpenAuth, 
                             <div className="aspect-[4/3] bg-gray-900 relative overflow-hidden cursor-pointer" onClick={() => setSelectedImage(project)}>
                                 {project.imageUrl ? (
                                     <img
-                                        src={project.imageUrl}
+                                        src={getOptimizedImageUrl(project.imageUrl, 600)}
                                         alt={project.prompt}
                                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                         onError={(e) => {
                                             (e.target as HTMLImageElement).style.display = 'none';
                                             (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
                                         }}
+                                        loading="lazy"
                                     />
                                 ) : (
                                     <div className="w-full h-full bg-gradient-to-br from-gray-800 to-black flex items-center justify-center">
@@ -127,7 +129,7 @@ const Projects: React.FC<ProjectsProps> = ({ projects, currentUser, onOpenAuth, 
                                     <div className="flex items-center justify-between pointer-events-auto">
                                         <div className="flex gap-2">
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); handleDownload(project.imageUrl, project.prompt); }}
+                                                onClick={(e) => { e.stopPropagation(); handleDownload(getOriginalImageUrl(project.imageUrl), project.prompt); }}
                                                 className="p-2 rounded-full bg-white/10 hover:bg-white hover:text-black text-white backdrop-blur-md transition-all duration-200 hover:scale-105"
                                                 title="Download"
                                             >
@@ -200,7 +202,7 @@ const Projects: React.FC<ProjectsProps> = ({ projects, currentUser, onOpenAuth, 
                             onClick={(e) => e.stopPropagation()}
                         >
                             <img
-                                src={selectedImage.imageUrl}
+                                src={getOptimizedImageUrl(selectedImage.imageUrl, 1200)}
                                 alt={selectedImage.prompt}
                                 className="max-h-[70vh] w-auto object-contain rounded-lg shadow-2xl border border-white/10 shrink-0"
                             />
@@ -208,7 +210,7 @@ const Projects: React.FC<ProjectsProps> = ({ projects, currentUser, onOpenAuth, 
                             <div className="mt-6 flex items-center gap-4 bg-black/50 backdrop-blur-md px-6 py-3 rounded-full border border-white/10 shrink-0">
                                 <span className="text-white/80 text-sm font-medium mr-4 border-r border-white/10 pr-4">{selectedImage.model}</span>
                                 <button
-                                    onClick={() => handleDownload(selectedImage.imageUrl, selectedImage.prompt)}
+                                    onClick={() => handleDownload(getOriginalImageUrl(selectedImage.imageUrl), selectedImage.prompt)}
                                     className="flex items-center gap-2 text-white hover:text-brand transition-colors text-sm font-medium"
                                 >
                                     <Download size={16} /> Download
@@ -221,7 +223,7 @@ const Projects: React.FC<ProjectsProps> = ({ projects, currentUser, onOpenAuth, 
                                 </button>
                                 {onEditImage && (
                                     <button
-                                        onClick={() => onEditImage(selectedImage.imageUrl)}
+                                        onClick={() => onEditImage && onEditImage(getOriginalImageUrl(selectedImage.imageUrl))}
                                         className="flex items-center gap-2 text-white hover:text-brand transition-colors text-sm font-medium pl-4 border-l border-white/10"
                                     >
                                         <Wand2 size={16} /> Edit

@@ -6,6 +6,7 @@ export interface User {
     avatar: string;
     status?: 'online' | 'offline' | 'generating';
     lastActive?: string;
+    credits: number;
 }
 
 const STORAGE_KEY_CURRENT = 'click_tools_current_user';
@@ -34,7 +35,8 @@ export const AuthService = {
                 name: data.name,
                 avatar: data.avatar_url || `https://ui-avatars.com/api/?name=${data.name}&background=random`,
                 status: 'online',
-                lastActive: 'Now'
+                lastActive: 'Now',
+                credits: data.credits || 0 // Default to 0 if not found
             };
 
             // Update status to online

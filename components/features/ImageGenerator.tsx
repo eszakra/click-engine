@@ -6,6 +6,7 @@ import PremiumButton from '../ui/PremiumButton';
 import PremiumLoader from '../ui/PremiumLoader';
 import AccessRestricted from '../ui/AccessRestricted';
 import { Project } from '../../services/projects';
+import { getOptimizedImageUrl, getOriginalImageUrl } from '../../utils/imageOptimizer';
 
 interface ImageGeneratorProps {
     onGenerate: (prompt: string, aspectRatio: string, resolution?: string) => Promise<Project | null>;
@@ -58,6 +59,19 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
             const newProjects = results.filter((p): p is Project => p !== null);
             if (newProjects.length > 0) {
                 setGeneratedImages(prev => [...newProjects, ...prev]);
+
+                // Update local user credits if returned by backend (take the last one as it has the latest balance)
+                const lastProject = newProjects[newProjects.length - 1];
+                if (lastProject.credits !== undefined) {
+                    const userJson = localStorage.getItem('click_tools_current_user');
+                    if (userJson) {
+                        const user = JSON.parse(userJson);
+                        user.credits = lastProject.credits;
+                        localStorage.setItem('click_tools_current_user', JSON.stringify(user));
+                        // Force re-render of credits
+                        window.dispatchEvent(new Event('storage'));
+                    }
+                }
             }
             setPrompt('');
         } catch (error: any) {
@@ -307,10 +321,11 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
                                     className="group relative aspect-video rounded-xl overflow-hidden bg-white/5 border border-white/10 shadow-lg hover:shadow-2xl hover:border-white/20 transition-all duration-300"
                                 >
                                     <img
-                                        src={project.imageUrl}
+                                        src={getOptimizedImageUrl(project.imageUrl, 600)}
                                         alt={project.prompt}
                                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 cursor-pointer"
                                         onClick={() => setSelectedImage(project)}
+                                        loading="lazy"
                                     />
 
                                     {/* Model Badge (Left) */}
@@ -323,7 +338,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
                                         <p className="text-white text-sm font-medium line-clamp-1 mb-3">{project.prompt}</p>
                                         <div className="flex items-center gap-2 pointer-events-auto">
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); handleDownload(project.imageUrl, project.prompt); }}
+                                                onClick={(e) => { e.stopPropagation(); handleDownload(getOriginalImageUrl(project.imageUrl), project.prompt); }}
                                                 className="p-2 rounded-lg bg-white/10 hover:bg-white hover:text-black text-white backdrop-blur-md transition-all duration-200 border border-white/10 hover:border-white hover:scale-105"
                                                 title="Download"
                                             >
@@ -384,7 +399,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
                             onClick={(e) => e.stopPropagation()}
                         >
                             <img
-                                src={selectedImage.imageUrl}
+                                src={getOptimizedImageUrl(selectedImage.imageUrl, 1200)}
                                 alt={selectedImage.prompt}
                                 className="max-h-[70vh] w-auto object-contain rounded-lg shadow-2xl border border-white/10 shrink-0"
                             />
@@ -392,7 +407,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
                             <div className="mt-6 flex items-center gap-4 bg-black/50 backdrop-blur-md px-6 py-3 rounded-full border border-white/10 shrink-0">
                                 <span className="text-white/80 text-sm font-medium mr-4 border-r border-white/10 pr-4">{selectedImage.model}</span>
                                 <button
-                                    onClick={() => handleDownload(selectedImage.imageUrl, selectedImage.prompt)}
+                                    onClick={() => handleDownload(getOriginalImageUrl(selectedImage.imageUrl), selectedImage.prompt)}
                                     className="flex items-center gap-2 text-white hover:text-brand transition-colors text-sm font-medium"
                                 >
                                     <Download size={16} /> Download
@@ -405,7 +420,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
                                 </button>
                                 {onEditImage && (
                                     <button
-                                        onClick={() => onEditImage(selectedImage.imageUrl)}
+                                        onClick={() => onEditImage && onEditImage(getOriginalImageUrl(selectedImage.imageUrl))}
                                         className="flex items-center gap-2 text-white hover:text-brand transition-colors text-sm font-medium pl-4 border-l border-white/10"
                                     >
                                         <Wand2 size={16} /> Edit

@@ -144,8 +144,18 @@ serve(async (req) => {
                     .from('generated-images')
                     .getPublicUrl(fileName);
 
+                // Calculate cost based on model
+                let cost = 1;
+                if (model.includes('Nano Banana Pro') || model === 'gemini-3-pro-image-preview') {
+                    cost = 119;
+                } else if (model.includes('Nano Banana') || model === 'gemini-2.5-flash-image') {
+                    cost = 32;
+                } else if (model.includes('FLUX 2.0')) {
+                    cost = 2;
+                }
+
                 // Deduct credits
-                const { data: remainingBalance } = await supabase.rpc('deduct_team_credits', { amount: 1 });
+                const { data: remainingBalance } = await supabase.rpc('deduct_team_credits', { amount: cost });
 
                 return new Response(
                     JSON.stringify({ imageUrl: publicUrl, model: model, credits: remainingBalance }),

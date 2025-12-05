@@ -8,6 +8,7 @@ export interface Project {
     authorAvatar: string;
     model: string;
     date: string;
+    credits?: number; // Optional, returned after generation
 }
 
 export const ProjectsService = {
@@ -54,6 +55,7 @@ export const ProjectsService = {
     create: async (projectData: Omit<Project, 'id' | 'date'> & { aspectRatio?: string, referenceImage?: string, referenceImageMimeType?: string, resolution?: string }): Promise<Project> => {
         try {
             let imageUrl = '';
+            let remainingCredits: number | undefined;
             const modelUsed = projectData.model;
             const aspectRatio = projectData.aspectRatio || '1:1';
 
@@ -64,7 +66,6 @@ export const ProjectsService = {
                 let apiModelId = 'grok-2-image-1212';
                 let provider = 'xai';
 
-                // Prepend aspect ratio to prompt for Grok (Stronger adherence)
                 // Prepend aspect ratio to prompt for Grok (Stronger adherence)
                 let enhancedPrompt = "";
 
@@ -136,6 +137,7 @@ export const ProjectsService = {
                 }
 
                 imageUrl = data.imageUrl;
+                remainingCredits = data.credits;
             } else {
                 console.log('Generating with Pollinations...');
 
@@ -190,7 +192,8 @@ export const ProjectsService = {
                 author: projectData.author,
                 authorAvatar: projectData.authorAvatar,
                 model: modelUsed,
-                date: new Date(project.created_at).toLocaleDateString()
+                date: new Date(project.created_at).toLocaleDateString(),
+                credits: remainingCredits
             };
         } catch (error) {
             console.error('Error creating project:', error);

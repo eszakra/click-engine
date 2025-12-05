@@ -3,8 +3,8 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  // Ensure assets load correctly whether on root or /engine subdirectory
-  base: '/engine/',
+  // Base '/' because we are deploying to a subdomain (engine.madebyclick.com), not a subdirectory.
+  base: '/',
   build: {
     chunkSizeWarningLimit: 1000,
     rollupOptions: {

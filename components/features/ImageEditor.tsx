@@ -615,39 +615,44 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: 20 }}
-                                className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-40 max-h-[80vh] overflow-y-auto custom-scrollbar p-2"
+                                className="absolute right-6 top-24 bottom-24 flex flex-col justify-center pointer-events-none z-40"
                             >
-                                {/* Original Version */}
-                                <button
-                                    onClick={() => {
-                                        setGeneratedImage(null);
-                                        setPrompt('');
-                                    }}
-                                    className={`w-20 h-20 rounded-lg border overflow-hidden transition-all hover:scale-105 shrink-0 relative group shadow-lg ${!generatedImage ? 'border-brand ring-2 ring-brand/20' : 'border-white/10 hover:border-white/30'}`}
-                                    title="Original Image"
-                                >
-                                    <img src={getOptimizedImageUrl(currentSession.originalUrl, 200)} alt="Original" className="w-full h-full object-cover" loading="lazy" />
-                                    <div className={`absolute inset-0 transition-colors ${!generatedImage ? 'bg-transparent' : 'bg-black/40 group-hover:bg-black/20'}`} />
-                                    <div className="absolute bottom-1 right-1 bg-black/60 px-1.5 py-0.5 rounded text-[10px] text-white/80 backdrop-blur-sm truncate max-w-[90%]">
-                                        Original
-                                    </div>
-                                </button>
+                                <div className="bg-[#0A0A0A]/90 backdrop-blur-xl border border-white/10 p-3 rounded-2xl shadow-2xl flex flex-col gap-3 max-h-full overflow-y-auto custom-scrollbar pointer-events-auto">
 
-                                {/* Generated Versions */}
-                                {currentSession.versions.map((version, idx) => (
+                                    {/* Original Version */}
                                     <button
-                                        key={version.id}
-                                        onClick={() => restoreVersion(version)}
-                                        className={`w-20 h-20 rounded-lg border overflow-hidden transition-all hover:scale-105 shrink-0 relative group shadow-lg ${generatedImage === version.url ? 'border-brand ring-2 ring-brand/20' : 'border-white/10 hover:border-white/30'}`}
-                                        title={version.prompt}
+                                        onClick={() => {
+                                            setGeneratedImage(null);
+                                            setPrompt('');
+                                        }}
+                                        className={`w-20 h-20 rounded-xl border overflow-hidden transition-all hover:scale-105 shrink-0 relative group shadow-lg ${!generatedImage ? 'border-brand ring-2 ring-brand/20' : 'border-white/10 hover:border-white/30'}`}
+                                        title="Original Image"
                                     >
-                                        <img src={getOptimizedImageUrl(version.url, 200)} alt={`Version ${idx + 1}`} className="w-full h-full object-cover" loading="lazy" />
-                                        <div className={`absolute inset-0 transition-colors ${generatedImage === version.url ? 'bg-transparent' : 'bg-black/40 group-hover:bg-black/20'}`} />
-                                        <div className="absolute bottom-1 right-1 bg-black/60 px-1.5 py-0.5 rounded text-[10px] text-white/80 backdrop-blur-sm truncate max-w-[90%]">
-                                            {version.prompt.slice(0, 15)}{version.prompt.length > 15 ? '...' : ''}
+                                        <img src={getOptimizedImageUrl(currentSession.originalUrl, 200)} alt="Original" className="w-full h-full object-cover" loading="lazy" />
+                                        <div className={`absolute inset-0 transition-colors ${!generatedImage ? 'bg-transparent' : 'bg-black/40 group-hover:bg-black/20'}`} />
+                                        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent p-1.5 pt-4">
+                                            <div className="text-[9px] font-bold text-white/90 text-center">Original</div>
                                         </div>
                                     </button>
-                                ))}
+
+                                    {/* Generated Versions */}
+                                    {currentSession.versions.map((version, idx) => (
+                                        <button
+                                            key={version.id}
+                                            onClick={() => restoreVersion(version)}
+                                            className={`w-20 h-20 rounded-xl border overflow-hidden transition-all hover:scale-105 shrink-0 relative group shadow-lg ${generatedImage === version.url ? 'border-brand ring-2 ring-brand/20' : 'border-white/10 hover:border-white/30'}`}
+                                            title={version.prompt}
+                                        >
+                                            <img src={getOptimizedImageUrl(version.url, 200)} alt={`Version ${idx + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                                            <div className={`absolute inset-0 transition-colors ${generatedImage === version.url ? 'bg-transparent' : 'bg-black/40 group-hover:bg-black/20'}`} />
+                                            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent p-1.5 pt-4">
+                                                <div className="text-[9px] font-medium text-white/90 truncate text-center">
+                                                    {version.prompt.slice(0, 10)}{version.prompt.length > 10 ? '...' : ''}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>

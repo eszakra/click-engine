@@ -95,13 +95,32 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
         return initialSessions;
     });
 
-    // Save sessions to localStorage whenever they change
+    // Save sessions to localStorage whenever they change, with LRU eviction
     useEffect(() => {
-        try {
-            localStorage.setItem('image_editor_sessions', JSON.stringify(sessions));
-        } catch (error) {
-            console.error('Failed to save sessions to localStorage:', error);
-            // Optional: Notify user or trim old sessions
+        const saveToStorage = (data: Session[]) => {
+            try {
+                localStorage.setItem('image_editor_sessions', JSON.stringify(data));
+            } catch (error: any) {
+                if (error.name === 'QuotaExceededError' || error.message.includes('quota')) {
+                    console.warn('Storage quota exceeded, removing oldest session...');
+                    if (data.length > 0) {
+                        // Remove the oldest session (last in the array since we prepend new ones, 
+                        // but actually we should check timestamps to be sure, or just pop the last one)
+                        // Our sessions are ordered new -> old, so pop() removes the oldest.
+                        const newData = [...data];
+                        newData.pop();
+                        saveToStorage(newData);
+                        // Also update state to reflect the eviction so UI stays in sync
+                        setSessions(newData);
+                    }
+                } else {
+                    console.error('Failed to save sessions to localStorage:', error);
+                }
+            }
+        };
+
+        if (sessions.length > 0) {
+            saveToStorage(sessions);
         }
     }, [sessions]);
 

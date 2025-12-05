@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  // Ensure assets load correctly whether on root or /engine subdirectory
+  base: '/engine/',
   build: {
     chunkSizeWarningLimit: 1000,
     rollupOptions: {

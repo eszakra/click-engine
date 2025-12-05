@@ -23,6 +23,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
     const [resolution, setResolution] = useState('1k');
     const [selectedImage, setSelectedImage] = useState<Project | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [safetyWarning, setSafetyWarning] = useState(false);
 
     // Load user's history on mount
     React.useEffect(() => {
@@ -49,6 +50,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
         if (!prompt.trim()) return;
 
         setIsGenerating(true);
+        setSafetyWarning(false);
         try {
             const promises = Array.from({ length: imageCount }, () => onGenerate(prompt, aspectRatio, resolution));
             const results = await Promise.all(promises);
@@ -58,8 +60,28 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
                 setGeneratedImages(prev => [...newProjects, ...prev]);
             }
             setPrompt('');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error generating image:', error);
+
+            // Check for explicit safety violation
+            const isExplicitSafety = error.message && (
+                error.message.includes('SAFETY_VIOLATION') ||
+                error.message.includes('safety') ||
+                error.message.includes('blocked')
+            );
+
+            // Check for generic error on Nano Banana models (heuristic as per user request)
+            // "If it didn't generate an image" -> likely safety block for these models
+            const isNanoBanana = selectedModel.includes('Nano Banana');
+            const isGenericEdgeError = error.message && (
+                error.message.includes('FunctionsHttpError') ||
+                error.message.includes('Edge Function returned') ||
+                error.message.includes('non-2xx')
+            );
+
+            if (isExplicitSafety || (isNanoBanana && isGenericEdgeError)) {
+                setSafetyWarning(true);
+            }
         } finally {
             setIsGenerating(false);
         }
@@ -115,6 +137,49 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
                 </motion.h1>
             </div>
 
+            {/* Safety Warning Toast */}
+            <AnimatePresence>
+                {safetyWarning && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute top-24 left-0 right-0 z-50 flex justify-center pointer-events-none"
+                    >
+                        <div className="relative overflow-hidden bg-[#0A0A0A]/90 backdrop-blur-2xl border border-red-500/20 px-6 py-4 rounded-2xl shadow-[0_8px_32px_rgba(255,0,0,0.15)] flex items-center gap-4 pointer-events-auto mt-2 group">
+                            {/* Liquid Background Effect */}
+                            <div className="absolute inset-0 opacity-20 pointer-events-none">
+                                <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 via-transparent to-red-600/20 animate-pulse" style={{ backgroundSize: '200% 100%' }} />
+                                <motion.div
+                                    className="absolute inset-0 bg-gradient-to-tr from-transparent via-red-500/10 to-transparent"
+                                    animate={{ backgroundPosition: ['0% 0%', '100% 100%'] }}
+                                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                                    style={{ backgroundSize: '200% 200%' }}
+                                />
+                            </div>
+
+                            <div className="relative z-10 w-10 h-10 rounded-xl bg-gradient-to-br from-red-500/20 to-black border border-red-500/30 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(255,0,0,0.2)]">
+                                <Lock size={16} className="text-red-400 drop-shadow-[0_0_8px_rgba(255,50,50,0.5)]" />
+                            </div>
+
+                            <div className="relative z-10 flex flex-col">
+                                <span className="text-sm font-bold text-white tracking-wide">Content Flagged</span>
+                                <span className="text-[11px] text-red-200/60 font-medium">Safety guidelines blocked this request</span>
+                            </div>
+
+                            <div className="h-8 w-px bg-white/5 mx-2 relative z-10" />
+
+                            <button
+                                onClick={() => setSafetyWarning(false)}
+                                className="relative z-10 p-2 hover:bg-white/5 rounded-xl transition-colors text-white/40 hover:text-white"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Input Section */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -122,13 +187,19 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
                 transition={{ delay: 0.3 }}
                 className="relative z-20 mb-10 max-w-4xl mx-auto w-full"
             >
-                <div className="relative group rounded-3xl p-[1px] bg-gradient-to-b from-white/20 to-white/5 shadow-2xl shadow-black/50">
-                    <div className="absolute inset-0 bg-gradient-to-r from-brand/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl blur-xl" />
+                <div className={`relative group rounded-3xl p-[1px] bg-gradient-to-b from-white/20 to-white/5 shadow-2xl shadow-black/50 transition-all duration-500 ${safetyWarning ? 'shadow-[0_0_40px_rgba(255,0,0,0.15)]' : ''}`}>
+                    <div className={`absolute inset-0 bg-gradient-to-r from-brand/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl blur-xl ${safetyWarning ? 'opacity-0' : ''}`} />
+
+                    {/* Red Liquid Glow for Warning */}
+                    <div className={`absolute inset-0 bg-gradient-to-r from-red-600/20 via-orange-500/10 to-red-600/20 opacity-0 transition-opacity duration-500 rounded-3xl blur-xl ${safetyWarning ? 'opacity-100 animate-pulse' : ''}`} />
 
                     <div className="relative bg-[#0a0a0a]/90 backdrop-blur-2xl rounded-3xl p-2 overflow-hidden">
                         <textarea
                             value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
+                            onChange={(e) => {
+                                setPrompt(e.target.value);
+                                if (safetyWarning) setSafetyWarning(false);
+                            }}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();

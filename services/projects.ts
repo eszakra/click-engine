@@ -103,8 +103,37 @@ export const ProjectsService = {
                     }
                 });
 
-                if (error) throw error;
-                if (data.error) throw new Error(data.error);
+                if (error) {
+                    console.error("Supabase Function Error:", error);
+                    // Try to extract the real error message from the response body
+                    try {
+                        if (error instanceof Error && 'context' in error) {
+                            const response = (error as any).context as Response;
+                            if (response && typeof response.json === 'function') {
+                                const errorBody = await response.json();
+                                console.log("Error Body:", errorBody);
+                                if (errorBody.error && (
+                                    errorBody.error.includes('safety') ||
+                                    errorBody.error.includes('blocked') ||
+                                    errorBody.error.includes('SAFETY')
+                                )) {
+                                    throw new Error('SAFETY_VIOLATION: Content blocked by safety filters.');
+                                }
+                                throw new Error(errorBody.error || error.message);
+                            }
+                        }
+                    } catch (parseError) {
+                        console.warn("Failed to parse error response:", parseError);
+                    }
+                    throw error;
+                }
+
+                if (data.error) {
+                    if (data.error.includes('safety') || data.error.includes('blocked') || data.error.includes('SAFETY')) {
+                        throw new Error('SAFETY_VIOLATION: Content blocked by safety filters.');
+                    }
+                    throw new Error(data.error);
+                }
 
                 imageUrl = data.imageUrl;
             } else {

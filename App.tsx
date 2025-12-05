@@ -95,7 +95,7 @@ const App: React.FC = () => {
             return newProject;
         } catch (error) {
             console.error('Error generating project:', error);
-            return null;
+            throw error; // Rethrow so ImageGenerator can handle it (e.g. safety warnings)
         } finally {
             // Update status back to "online" after generating
             await AuthService.updateStatus('online');

@@ -95,6 +95,17 @@ serve(async (req) => {
 
                 const result = await response.json();
 
+                // Check for safety blocks
+                if (result.promptFeedback?.blockReason) {
+                    console.warn(`Blocked by safety filters: ${result.promptFeedback.blockReason}`);
+                    throw new Error(`SAFETY_VIOLATION: Content blocked by safety filters (${result.promptFeedback.blockReason})`);
+                }
+
+                if (result.candidates && result.candidates[0]?.finishReason === 'SAFETY') {
+                    console.warn('Blocked by safety filters (finishReason: SAFETY)');
+                    throw new Error('SAFETY_VIOLATION: Content blocked by safety filters.');
+                }
+
                 // Extract generated image from response
                 let imageBlob: Blob | null = null;
                 let extension = 'png';
@@ -200,9 +211,10 @@ serve(async (req) => {
 
     } catch (error) {
         console.error('Edge Function Error:', error);
+        // Return 200 with error message so client can parse it easily
         return new Response(
             JSON.stringify({ error: error.message }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
     }
 })

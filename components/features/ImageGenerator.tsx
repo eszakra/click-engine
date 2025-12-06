@@ -25,20 +25,29 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
     const [selectedImage, setSelectedImage] = useState<Project | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [safetyWarning, setSafetyWarning] = useState(false);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
     // Load user's history on mount
     React.useEffect(() => {
         if (isLoggedIn) {
             const loadHistory = async () => {
-                const userJson = localStorage.getItem('click_tools_current_user');
-                if (userJson) {
-                    const user = JSON.parse(userJson);
-                    const allProjects = await import('../../services/projects').then(m => m.ProjectsService.getAll());
-                    const myProjects = allProjects.filter(p => p.author === user.name);
-                    setGeneratedImages(myProjects);
+                try {
+                    const userJson = localStorage.getItem('click_tools_current_user');
+                    if (userJson) {
+                        const user = JSON.parse(userJson);
+                        const allProjects = await import('../../services/projects').then(m => m.ProjectsService.getAll());
+                        const myProjects = allProjects.filter(p => p.author === user.name);
+                        setGeneratedImages(myProjects);
+                    }
+                } catch (error) {
+                    console.error("Failed to load history:", error);
+                } finally {
+                    setIsLoadingHistory(false);
                 }
             };
             loadHistory();
+        } else {
+            setIsLoadingHistory(false);
         }
     }, [isLoggedIn]);
 
@@ -128,6 +137,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
     };
 
     const getGridClass = () => {
+        if (isLoadingHistory) return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4';
         const totalItems = generatedImages.length + (isGenerating ? imageCount : 0);
         if (totalItems === 0) return 'grid-cols-1 max-w-4xl mx-auto'; // Should not happen if we handle empty state correctly
         if (totalItems === 1) return 'grid-cols-1 max-w-4xl mx-auto';
@@ -295,7 +305,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
             {/* Results Area */}
             <div className="flex-1 min-h-[400px]">
                 <AnimatePresence mode="wait">
-                    {(generatedImages.length > 0 || isGenerating) ? (
+                    {(generatedImages.length > 0 || isGenerating || isLoadingHistory) ? (
                         <motion.div
                             key="image-grid"
                             className={`grid gap-3 ${getGridClass()} `}
@@ -314,7 +324,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
                             exit={{ opacity: 0, transition: { duration: 0.1 } }}
                         >
                             {/* Loading State - Skeleton + Spinner */}
-                            {isGenerating && Array.from({ length: imageCount }).map((_, i) => (
+                            {(isGenerating || isLoadingHistory) && Array.from({ length: isLoadingHistory ? 12 : imageCount }).map((_, i) => (
                                 <motion.div
                                     key={`loading-${i}`}
                                     variants={{
@@ -324,7 +334,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
                                     className="aspect-video rounded-xl overflow-hidden bg-white/5 border border-white/10 relative flex items-center justify-center"
                                 >
                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 animate-[shimmer_1.5s_infinite]" />
-                                    <PremiumLoader size={32} />
+                                    {isGenerating && <PremiumLoader size={32} />}
                                 </motion.div>
                             ))}
 
@@ -381,24 +391,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
                                 </motion.div>
                             ))}
                         </motion.div>
-                    ) : (
-                        <motion.div
-                            key="empty-state"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="h-full flex flex-col items-center justify-center text-center py-20 border border-dashed border-white/10 rounded-3xl bg-white/[0.02]"
-                        >
-                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-white/5 to-transparent flex items-center justify-center mb-6 shadow-inner border border-white/5">
-                                <Sparkles className="text-gray-600" size={32} />
-                            </div>
-                            <h3 className="text-xl font-medium text-white mb-2">Ready to Create?</h3>
-                            <p className="text-gray-500 max-w-md">
-                                Enter a prompt above to generate unique, high-quality images powered by our advanced AI models.
-                            </p>
-                        </motion.div>
-                    )}
+                    ) : null}
                 </AnimatePresence>
             </div>
 

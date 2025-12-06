@@ -11,6 +11,7 @@ import GlassCard from '../ui/GlassCard';
 import PremiumLoader from '../ui/PremiumLoader';
 import { ProjectsService } from '../../services/projects';
 import { getOptimizedImageUrl } from '../../utils/imageOptimizer';
+import { EditorHistoryService, type EditorSession, type EditorVersion } from '../../services/editorHistory';
 
 interface Tool {
     id: string;
@@ -52,77 +53,16 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
     const [safetyWarning, setSafetyWarning] = useState(false);
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
-    // Load sessions from localStorage on mount and migrate legacy history if needed
-    const [sessions, setSessions] = useState<Session[]>(() => {
-        const savedSessions = localStorage.getItem('image_editor_sessions');
-        let initialSessions: Session[] = savedSessions ? JSON.parse(savedSessions) : [];
+    // Load sessions from Supabase
+    const [sessions, setSessions] = useState<EditorSession[]>([]);
 
-        // Migration logic: Check for old history and convert to sessions
-        const legacyHistory = localStorage.getItem('image_editor_history');
-        if (legacyHistory) {
-            try {
-                const parsedHistory = JSON.parse(legacyHistory);
-                if (Array.isArray(parsedHistory) && parsedHistory.length > 0) {
-                    const migratedSessions: Session[] = parsedHistory.map((item: any, index: number) => ({
-                        id: `legacy-${Date.now()}-${index}`,
-                        originalUrl: item.url, // Best effort: treat generated image as original for legacy items
-                        versions: [{
-                            id: `legacy-v-${Date.now()}-${index}`,
-                            url: item.url,
-                            prompt: item.prompt || 'Legacy Image',
-                            model: item.model || 'Unknown',
-                            timestamp: Date.now()
-                        }],
-                        timestamp: Date.now() - (index * 1000) // Stagger timestamps slightly
-                    }));
-
-                    // Merge migrated sessions with existing ones, avoiding duplicates based on URL if possible, 
-                    // but simple concatenation is safer to avoid data loss.
-                    // Filter out any that might already exist in initialSessions to be safe (by URL)
-                    const existingUrls = new Set(initialSessions.map(s => s.originalUrl));
-                    const newUniqueSessions = migratedSessions.filter(s => !existingUrls.has(s.originalUrl));
-
-                    initialSessions = [...initialSessions, ...newUniqueSessions];
-
-                    // Clear legacy history to prevent re-migration next time
-                    localStorage.removeItem('image_editor_history');
-                }
-            } catch (e) {
-                console.error("Failed to migrate legacy history:", e);
-            }
-        }
-
-        return initialSessions;
-    });
-
-    // Save sessions to localStorage whenever they change, with LRU eviction
     useEffect(() => {
-        const saveToStorage = (data: Session[]) => {
-            try {
-                localStorage.setItem('image_editor_sessions', JSON.stringify(data));
-            } catch (error: any) {
-                if (error.name === 'QuotaExceededError' || error.message.includes('quota')) {
-                    console.warn('Storage quota exceeded, removing oldest session...');
-                    if (data.length > 0) {
-                        // Remove the oldest session (last in the array since we prepend new ones, 
-                        // but actually we should check timestamps to be sure, or just pop the last one)
-                        // Our sessions are ordered new -> old, so pop() removes the oldest.
-                        const newData = [...data];
-                        newData.pop();
-                        saveToStorage(newData);
-                        // Also update state to reflect the eviction so UI stays in sync
-                        setSessions(newData);
-                    }
-                } else {
-                    console.error('Failed to save sessions to localStorage:', error);
-                }
-            }
+        const loadSessions = async () => {
+            const data = await EditorHistoryService.getSessions();
+            setSessions(data);
         };
-
-        if (sessions.length > 0) {
-            saveToStorage(sessions);
-        }
-    }, [sessions]);
+        loadSessions();
+    }, []);
 
     // Load initial image if provided
     useEffect(() => {
@@ -178,14 +118,11 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
     };
 
     const startNewSession = (imageUrl: string) => {
-        // Just set the state, don't persist to sessions list yet
-        // It will be persisted only when the first edit is made
-        const newSessionId = Date.now().toString();
-        setCurrentSessionId(newSessionId);
         setUploadedImage(imageUrl);
         setGeneratedImage(null);
         setPrompt('');
         calculateAspectRatio(imageUrl);
+        setCurrentSessionId(null); // No session yet, waiting for first edit
     };
 
     const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -320,40 +257,86 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
 
             setGeneratedImage(project.imageUrl);
 
-            // Add to current session versions
-            if (currentSessionId) {
-                setSessions(prev => {
-                    const existingSession = prev.find(s => s.id === currentSessionId);
-                    const newVersion = {
-                        id: Date.now().toString(),
-                        url: project.imageUrl,
-                        prompt: prompt,
-                        model: selectedModel,
-                        timestamp: Date.now()
-                    };
+            let activeSessionId = currentSessionId;
 
-                    if (existingSession) {
-                        // Session exists, append version
+            // If no active session (first edit), create one now
+            if (!activeSessionId) {
+                // OPTIMISTIC SESSION CREATION
+                const tempSessionId = Date.now().toString();
+                const tempSession: EditorSession = {
+                    id: tempSessionId,
+                    originalUrl: uploadedImage,
+                    versions: [],
+                    timestamp: Date.now(),
+                    userId: 'temp'
+                };
+
+                setSessions(prev => [tempSession, ...prev]);
+                activeSessionId = tempSessionId;
+                setCurrentSessionId(tempSessionId);
+
+                // Create in DB
+                try {
+                    const newSession = await EditorHistoryService.createSession(uploadedImage);
+                    if (newSession) {
+                        // Update state with real ID
+                        activeSessionId = newSession.id;
+                        setCurrentSessionId(newSession.id);
+                        setSessions(prev => prev.map(s => s.id === tempSessionId ? newSession : s));
+                    }
+                } catch (e) {
+                    console.error("Failed to create session on first edit:", e);
+                }
+            }
+
+            // Add to current session versions
+            if (activeSessionId) {
+                const targetSessionId = activeSessionId; // Capture for closure
+
+                // OPTIMISTIC VERSION UPDATE
+                const tempVersionId = Date.now().toString();
+                const tempVersion: EditorVersion = {
+                    id: tempVersionId,
+                    url: project.imageUrl,
+                    prompt: prompt,
+                    model: selectedModel,
+                    timestamp: Date.now()
+                };
+
+                setSessions(prev => {
+                    return prev.map(session => {
+                        if (session.id === targetSessionId) {
+                            return {
+                                ...session,
+                                versions: [...session.versions, tempVersion]
+                            };
+                        }
+                        return session;
+                    });
+                });
+
+                // Save Version to Supabase
+                const savedVersion = await EditorHistoryService.addVersion(
+                    targetSessionId,
+                    project.imageUrl,
+                    prompt,
+                    selectedModel
+                );
+
+                if (savedVersion) {
+                    // Replace temp version with real one
+                    setSessions(prev => {
                         return prev.map(session => {
-                            if (session.id === currentSessionId) {
+                            if (session.id === targetSessionId) {
                                 return {
                                     ...session,
-                                    versions: [...session.versions, newVersion]
+                                    versions: session.versions.map(v => v.id === tempVersionId ? savedVersion : v)
                                 };
                             }
                             return session;
                         });
-                    } else {
-                        // Session doesn't exist (first edit), create it
-                        const newSession: Session = {
-                            id: currentSessionId,
-                            originalUrl: uploadedImage,
-                            versions: [newVersion],
-                            timestamp: Date.now()
-                        };
-                        return [newSession, ...prev];
-                    }
-                });
+                    });
+                }
             }
 
         } catch (error: any) {
@@ -380,7 +363,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
         }
     };
 
-    const restoreSession = (session: Session) => {
+    const restoreSession = (session: EditorSession) => {
         setCurrentSessionId(session.id);
         setUploadedImage(session.originalUrl);
         // Restore the last version if it exists, otherwise show original
@@ -395,7 +378,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
         calculateAspectRatio(session.originalUrl);
     };
 
-    const restoreVersion = (version: Version) => {
+    const restoreVersion = (version: EditorVersion) => {
         setGeneratedImage(version.url);
         setPrompt(version.prompt);
     };

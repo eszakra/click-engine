@@ -294,19 +294,36 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
 
             {/* Results Area */}
             <div className="flex-1 min-h-[400px]">
-                <AnimatePresence mode="popLayout">
+                <AnimatePresence mode="wait">
                     {(generatedImages.length > 0 || isGenerating) ? (
-                        <div className={`grid gap-3 ${getGridClass()} transition-all duration-500`}>
+                        <motion.div
+                            key="image-grid"
+                            className={`grid gap-3 ${getGridClass()} `}
+                            variants={{
+                                hidden: { opacity: 0 },
+                                visible: {
+                                    opacity: 1,
+                                    transition: {
+                                        staggerChildren: 0.02,
+                                        when: "beforeChildren"
+                                    }
+                                }
+                            }}
+                            initial="hidden"
+                            animate="visible"
+                            exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                        >
                             {/* Loading State - Skeleton + Spinner */}
                             {isGenerating && Array.from({ length: imageCount }).map((_, i) => (
                                 <motion.div
                                     key={`loading-${i}`}
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    variants={{
+                                        hidden: { opacity: 0, scale: 0.95 },
+                                        visible: { opacity: 1, scale: 1, transition: { duration: 0.2 } }
+                                    }}
                                     className="aspect-video rounded-xl overflow-hidden bg-white/5 border border-white/10 relative flex items-center justify-center"
                                 >
-                                    <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent animate-pulse" />
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12 animate-[shimmer_1.5s_infinite]" />
                                     <PremiumLoader size={32} />
                                 </motion.div>
                             ))}
@@ -315,10 +332,11 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
                             {generatedImages.map((project, index) => (
                                 <motion.div
                                     key={project.id}
-                                    layout
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className="group relative aspect-video rounded-xl overflow-hidden bg-white/5 border border-white/10 shadow-lg hover:shadow-2xl hover:border-white/20 transition-all duration-300"
+                                    variants={{
+                                        hidden: { opacity: 0, scale: 0.95 },
+                                        visible: { opacity: 1, scale: 1, transition: { duration: 0.3, ease: "easeOut" } }
+                                    }}
+                                    className="group relative aspect-video rounded-xl overflow-hidden bg-white/5 border border-white/10 shadow-lg hover:shadow-2xl hover:border-white/20 transition-all duration-200"
                                 >
                                     <img
                                         src={getOptimizedImageUrl(project.imageUrl, 600)}
@@ -362,11 +380,14 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
                                     </div>
                                 </motion.div>
                             ))}
-                        </div>
+                        </motion.div>
                     ) : (
                         <motion.div
+                            key="empty-state"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
                             className="h-full flex flex-col items-center justify-center text-center py-20 border border-dashed border-white/10 rounded-3xl bg-white/[0.02]"
                         >
                             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-white/5 to-transparent flex items-center justify-center mb-6 shadow-inner border border-white/5">

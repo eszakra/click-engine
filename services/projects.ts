@@ -184,7 +184,6 @@ export const ProjectsService = {
                 .single();
 
             if (dbError) throw dbError;
-
             return {
                 id: project.id,
                 imageUrl: imageUrl,
@@ -199,5 +198,48 @@ export const ProjectsService = {
             console.error('Error creating project:', error);
             throw error;
         }
+    },
+
+    subscribeToProjects: (onNewProject: (project: Project) => void) => {
+        const channel = supabase
+            .channel('public:projects')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'projects'
+                },
+                async (payload) => {
+                    // Fetch user info for the new project to get the avatar
+                    // We do this because the realtime payload doesn't contain the joined user data
+                    let authorAvatar = '';
+                    if (payload.new.author_name) {
+                        const { data } = await supabase
+                            .from('users')
+                            .select('avatar_url')
+                            .eq('name', payload.new.author_name)
+                            .single();
+                        if (data) authorAvatar = data.avatar_url;
+                    }
+
+                    const newProject: Project = {
+                        id: payload.new.id,
+                        imageUrl: payload.new.image_url,
+                        prompt: payload.new.prompt,
+                        author: payload.new.author_name || 'Unknown',
+                        authorAvatar: authorAvatar,
+                        model: payload.new.model || 'Unknown',
+                        date: new Date(payload.new.created_at).toLocaleDateString()
+                    };
+
+                    onNewProject(newProject);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }
 };

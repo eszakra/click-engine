@@ -30,12 +30,18 @@ const App: React.FC = () => {
 
         ProjectsService.getAll().then(setProjects);
 
+        // Real-time subscription
+        const unsubscribe = ProjectsService.subscribeToProjects((newProject) => {
+            setProjects(prev => [newProject, ...prev]);
+        });
+
         // Listen for auth modal events from AccessRestricted component
         const handleOpenAuth = () => setIsAuthModalOpen(true);
         window.addEventListener('open-auth-modal', handleOpenAuth);
 
         return () => {
             window.removeEventListener('open-auth-modal', handleOpenAuth);
+            unsubscribe();
         };
     }, []);
 
@@ -126,14 +132,22 @@ const App: React.FC = () => {
 
             {/* Adjusted padding: removed pl-96 since sidebar is now floating/compact */}
             <main className="max-w-7xl mx-auto pt-28 pb-6 px-6 min-h-screen relative">
-                {currentView === 'generate' && (
+                {/* Keep-Alive Pattern: Generator and Editor remain mounted but hidden */}
+                <div style={{ display: currentView === 'generate' ? 'block' : 'none' }} className="h-full">
                     <ImageGenerator
                         onGenerate={handleGenerateRequest}
                         isLoggedIn={!!currentUser}
                         onEditImage={handleEditImage}
                         selectedModel={selectedModel}
                     />
-                )}
+                </div>
+
+                <div style={{ display: currentView === 'edit' ? 'block' : 'none' }} className="h-full">
+                    {currentUser && <ImageEditor initialImage={editingImage} />}
+                    {!currentUser && currentView === 'edit' && <AccessRestricted onSignIn={() => setIsAuthModalOpen(true)} />}
+                </div>
+
+
                 {currentView === 'projects' && (
                     <Projects
                         projects={projects}
@@ -157,13 +171,6 @@ const App: React.FC = () => {
                 {currentView === 'usage' && (
                     currentUser ? (
                         <UsageDashboard />
-                    ) : (
-                        <AccessRestricted onSignIn={() => setIsAuthModalOpen(true)} />
-                    )
-                )}
-                {currentView === 'edit' && (
-                    currentUser ? (
-                        <ImageEditor initialImage={editingImage} />
                     ) : (
                         <AccessRestricted onSignIn={() => setIsAuthModalOpen(true)} />
                     )

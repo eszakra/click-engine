@@ -8,14 +8,14 @@ interface GlassCardProps {
   noPadding?: boolean;
 }
 
-const GlassCard: React.FC<GlassCardProps> = ({ 
-  children, 
-  className = '', 
+const GlassCard: React.FC<GlassCardProps> = ({
+  children,
+  className = '',
   hoverEffect = false,
   noPadding = false
 }) => {
   return (
-    <motion.div 
+    <motion.div
       className={`
         relative overflow-hidden rounded-2xl
         bg-surface-glass backdrop-blur-xl
@@ -31,7 +31,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
     >
       {/* Glossy Reflection Gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-      
+
       {/* Content */}
       <div className="relative z-10">
         {children}

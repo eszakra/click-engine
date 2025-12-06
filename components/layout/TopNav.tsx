@@ -47,19 +47,26 @@ const TopNav: React.FC<TopNavProps> = ({ currentView, onNavigate, currentUser, o
 
                     {/* Navigation Links */}
                     <div className="flex items-center gap-1">
-                        {navItems.map((item, index) => (
+                        {navItems.map((item) => (
                             <button
-                                key={index}
+                                key={item.id} // Changed key to item.id for stability
                                 onClick={() => onNavigate(item.id as any)}
                                 className={`
-                    relative px-4 py-2 rounded-full flex items-center gap-2 text-sm font-medium transition-all duration-300
-                    ${item.active
-                                        ? 'text-white bg-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] border border-white/5'
-                                        : 'text-gray-400 hover:text-white hover:bg-white/5'}
-                `}
+                                    relative px-4 py-2 rounded-full flex items-center gap-2 text-sm font-medium transition-colors duration-300 z-0
+                                    ${item.active ? 'text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}
+                                `}
                             >
-                                {item.icon}
-                                <span>{item.label}</span>
+                                {item.active && (
+                                    <motion.span
+                                        layoutId="active-pill"
+                                        className="absolute inset-0 bg-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] border border-white/5 rounded-full -z-10"
+                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                    />
+                                )}
+                                <span className="relative z-10 flex items-center gap-2">
+                                    {item.icon}
+                                    <span>{item.label}</span>
+                                </span>
                             </button>
                         ))}
                     </div>

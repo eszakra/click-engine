@@ -14,7 +14,7 @@ import { ProjectsService, Project } from './services/projects';
 import AccessRestricted from './components/ui/AccessRestricted';
 
 const App: React.FC = () => {
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [currentUser, setCurrentUser] = useState<User | null>(() => AuthService.getCurrentUser());
     const [currentView, setCurrentView] = useState<'generate' | 'edit' | 'projects' | 'team' | 'usage'>('generate');
     const [projects, setProjects] = useState<Project[]>([]);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);

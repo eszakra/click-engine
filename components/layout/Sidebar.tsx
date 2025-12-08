@@ -20,7 +20,7 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedModel, onSelectModel }) => {
 
     return (
         <motion.div
-            className="fixed left-6 bottom-6 z-40 flex flex-col justify-end"
+            className="fixed left-4 right-4 bottom-4 md:left-6 md:right-auto md:bottom-6 z-40 flex flex-col justify-end items-center md:items-start"
             initial={false}
         >
             <AnimatePresence mode="wait">
@@ -31,88 +31,105 @@ const Sidebar: React.FC<SidebarProps> = ({ selectedModel, onSelectModel }) => {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
                         onClick={() => setIsOpen(true)}
-                        className="flex items-center gap-3 px-4 py-3 bg-[#1A1A1A] border border-white/10 rounded-2xl shadow-xl hover:bg-[#222] transition-colors group"
+                        className="flex items-center gap-3 px-4 py-3 bg-[#1A1A1A]/90 backdrop-blur-md border border-white/10 rounded-2xl shadow-xl hover:bg-[#222] transition-colors group w-full md:w-auto justify-between md:justify-start"
                     >
                         <div className="flex flex-col items-start">
                             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Model</span>
-                            <span className="text-sm font-bold text-white group-hover:text-brand transition-colors">{selectedModel}</span>
+                            <span className="text-sm font-bold text-white group-hover:text-brand transition-colors text-left">{selectedModel}</span>
                         </div>
                         <ChevronUp size={16} className="text-gray-500" />
                     </motion.button>
                 ) : (
-                    <motion.div
-                        key="list"
-                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                        className="w-80 bg-[#0A0A0A]/95 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[60vh]"
-                    >
-                        {/* Header */}
-                        <div
+                    <>
+                        {/* Mobile Overlay to close */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
                             onClick={() => setIsOpen(false)}
-                            className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/5 transition-colors border-b border-white/5"
-                        >
-                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Model</span>
-                            <ChevronDown size={14} className="text-gray-500" />
-                        </div>
+                            className="fixed inset-0 bg-black/60 z-30 md:hidden backdrop-blur-sm"
+                        />
 
-                        {/* List */}
-                        <div className="overflow-y-auto custom-scrollbar p-2 space-y-2 flex-1">
-                            {models.map((model, index) => (
-                                <button
-                                    key={index}
-                                    onClick={() => {
-                                        onSelectModel(model.name);
-                                        setIsOpen(false);
-                                    }}
-                                    className={`
-                            group relative p-3 rounded-xl text-left transition-all duration-200 border w-full
-                            ${model.name === selectedModel
-                                            ? 'bg-white/5 border-brand/50 shadow-[0_0_15px_rgba(255,0,85,0.1)]'
-                                            : 'bg-transparent border-transparent hover:bg-white/5 hover:border-white/5'}
-                        `}
-                                >
-                                    <div className="flex justify-between items-start mb-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`font-semibold text-sm ${model.name === selectedModel ? 'text-white' : 'text-gray-300'}`}>
-                                                {model.name}
-                                            </span>
-                                            {model.isNew && (
-                                                <span className="text-[9px] font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded-full">New</span>
+                        <motion.div
+                            key="list"
+                            initial={{ opacity: 0, y: "100%" }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: "100%" }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            className="fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto w-full md:w-80 bg-[#0A0A0A] md:bg-[#0A0A0A]/95 md:backdrop-blur-xl border-t md:border border-white/10 rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] md:max-h-[60vh] z-40 pb-safe md:pb-0"
+                        >
+                            {/* Mobile Drag Handle */}
+                            <div className="w-full flex justify-center pt-3 pb-1 md:hidden" onClick={() => setIsOpen(false)}>
+                                <div className="w-12 h-1.5 bg-white/20 rounded-full" />
+                            </div>
+
+                            {/* Header */}
+                            <div
+                                onClick={() => setIsOpen(false)}
+                                className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/5 transition-colors border-b border-white/5"
+                            >
+                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Select Model</span>
+                                <ChevronDown size={14} className="text-gray-500" />
+                            </div>
+
+                            {/* List */}
+                            <div className="overflow-y-auto custom-scrollbar p-2 space-y-2 flex-1">
+                                {models.map((model, index) => (
+                                    <button
+                                        key={index}
+                                        onClick={() => {
+                                            onSelectModel(model.name);
+                                            setIsOpen(false);
+                                        }}
+                                        className={`
+                                group relative p-3 rounded-xl text-left transition-all duration-200 border w-full
+                                ${model.name === selectedModel
+                                                ? 'bg-white/5 border-brand/50 shadow-[0_0_15px_rgba(255,0,85,0.1)]'
+                                                : 'bg-transparent border-transparent hover:bg-white/5 hover:border-white/5'}
+                            `}
+                                    >
+                                        <div className="flex justify-between items-start mb-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`font-semibold text-sm ${model.name === selectedModel ? 'text-white' : 'text-gray-300'}`}>
+                                                    {model.name}
+                                                </span>
+                                                {model.isNew && (
+                                                    <span className="text-[9px] font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded-full">New</span>
+                                                )}
+                                            </div>
+                                            {model.name === selectedModel && (
+                                                <span className="w-1.5 h-1.5 rounded-full bg-brand shadow-[0_0_8px_#FF0055]"></span>
                                             )}
                                         </div>
-                                        {model.name === selectedModel && (
-                                            <span className="w-1.5 h-1.5 rounded-full bg-brand shadow-[0_0_8px_#FF0055]"></span>
-                                        )}
-                                    </div>
 
-                                    <div className="flex items-center gap-3 text-[10px] text-gray-400 font-medium mt-2">
-                                        <span className="flex items-center gap-1 bg-white/5 px-1.5 py-0.5 rounded">
-                                            <Clock size={10} /> {model.time}
-                                        </span>
-                                        <span className="flex items-center gap-1 bg-white/5 px-1.5 py-0.5 rounded">
-                                            <Cpu size={10} /> {model.cost}
-                                        </span>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Footer */}
-                        <div className="p-3 border-t border-white/5 bg-black/20">
-                            <div className="flex items-center justify-between text-xs text-gray-400">
-                                <span className="flex items-center gap-1">
-                                    <Zap size={12} className="text-yellow-400" />
-                                    {(() => {
-                                        const userJson = localStorage.getItem('click_tools_current_user');
-                                        const user = userJson ? JSON.parse(userJson) : null;
-                                        return user?.credits ? user.credits.toLocaleString() : '0';
-                                    })()} Credits
-                                </span>
-                                <button className="text-brand hover:text-brand-light transition-colors font-medium">Upgrade</button>
+                                        <div className="flex items-center gap-3 text-[10px] text-gray-400 font-medium mt-2">
+                                            <span className="flex items-center gap-1 bg-white/5 px-1.5 py-0.5 rounded">
+                                                <Clock size={10} /> {model.time}
+                                            </span>
+                                            <span className="flex items-center gap-1 bg-white/5 px-1.5 py-0.5 rounded">
+                                                <Cpu size={10} /> {model.cost}
+                                            </span>
+                                        </div>
+                                    </button>
+                                ))}
                             </div>
-                        </div>
-                    </motion.div>
+
+                            {/* Footer */}
+                            <div className="p-3 border-t border-white/5 bg-black/20 mb-safe md:mb-0">
+                                <div className="flex items-center justify-between text-xs text-gray-400">
+                                    <span className="flex items-center gap-1">
+                                        <Zap size={12} className="text-yellow-400" />
+                                        {(() => {
+                                            const userJson = localStorage.getItem('click_tools_current_user');
+                                            const user = userJson ? JSON.parse(userJson) : null;
+                                            return user?.credits ? user.credits.toLocaleString() : '0';
+                                        })()} Credits
+                                    </span>
+                                    <button className="text-brand hover:text-brand-light transition-colors font-medium">Upgrade</button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </>
                 )}
             </AnimatePresence>
         </motion.div>

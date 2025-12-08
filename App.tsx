@@ -131,7 +131,7 @@ const App: React.FC = () => {
             )}
 
             {/* Adjusted padding: removed pl-96 since sidebar is now floating/compact */}
-            <main className="max-w-7xl mx-auto pt-28 pb-6 px-6 min-h-screen relative">
+            <main className="max-w-7xl mx-auto pt-20 md:pt-28 pb-24 md:pb-6 px-4 md:px-6 min-h-screen relative">
                 {/* Keep-Alive Pattern: Generator and Editor remain mounted but hidden */}
                 <div style={{ display: currentView === 'generate' ? 'block' : 'none' }} className="h-full">
                     <ImageGenerator

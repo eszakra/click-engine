@@ -31,7 +31,7 @@ const TopNav: React.FC<TopNavProps> = ({ currentView, onNavigate, currentUser, o
                 <div className="flex items-center p-1.5 glass-panel rounded-full shadow-2xl shadow-black/20 backdrop-blur-xl bg-[#050505]/80 border border-white/10">
 
                     {/* Logo Section */}
-                    <div className="pl-4 pr-6 flex items-center gap-3 border-r border-white/10 mr-2">
+                    <div className="hidden md:flex pl-4 pr-6 items-center gap-3 border-r border-white/10 mr-2">
                         <div className="w-8 h-8 bg-gradient-brand rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(255,0,85,0.4)]">
                             <img
                                 src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1763703060/35536363463_q7rajl.png"
@@ -40,7 +40,7 @@ const TopNav: React.FC<TopNavProps> = ({ currentView, onNavigate, currentUser, o
                             />
                         </div>
                         {/* Horizontal Text Layout */}
-                        <div className="flex items-center gap-1 leading-none hidden md:flex">
+                        <div className="flex items-center gap-1 leading-none">
                             <span className="font-display font-bold text-sm text-white">Click-Engine</span>
                         </div>
                     </div>
@@ -65,7 +65,7 @@ const TopNav: React.FC<TopNavProps> = ({ currentView, onNavigate, currentUser, o
                                 )}
                                 <span className="relative z-10 flex items-center gap-2">
                                     {item.icon}
-                                    <span>{item.label}</span>
+                                    <span className="hidden md:block">{item.label}</span>
                                 </span>
                             </button>
                         ))}
@@ -77,7 +77,7 @@ const TopNav: React.FC<TopNavProps> = ({ currentView, onNavigate, currentUser, o
                     {currentUser ? (
                         <button
                             onClick={onOpenSettings}
-                            className="flex items-center gap-3 pr-5 pl-1.5 py-0.5 hover:bg-white/5 rounded-full transition-colors group"
+                            className="flex items-center gap-3 pr-1.5 md:pr-5 pl-1.5 py-0.5 hover:bg-white/5 rounded-full transition-colors group"
                         >
                             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center overflow-hidden group-hover:border-brand/50 transition-colors">
                                 {currentUser.avatar ? (
@@ -86,7 +86,7 @@ const TopNav: React.FC<TopNavProps> = ({ currentView, onNavigate, currentUser, o
                                     <User size={18} className="text-gray-400 group-hover:text-brand transition-colors" />
                                 )}
                             </div>
-                            <div className="flex flex-col items-start">
+                            <div className="hidden md:flex flex-col items-start">
                                 <span className="text-xs font-bold text-white leading-none">{currentUser.name}</span>
                                 <span className="text-[10px] text-gray-500 leading-none mt-1">Online</span>
                             </div>

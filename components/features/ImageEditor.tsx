@@ -466,9 +466,9 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                 </div>
             </div>
 
-            <div className="flex-1 flex overflow-hidden relative pt-16">
-                {/* Left Sidebar (Sessions) */}
-                <div className="w-20 border-r border-white/5 bg-[#050505]/50 backdrop-blur-xl flex flex-col items-center py-6 gap-4 z-40 overflow-y-auto custom-scrollbar h-full shrink-0">
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative pt-16">
+                {/* Left Sidebar (Sessions) - Vertical on Desktop, Horizontal on Mobile */}
+                <div className="w-full h-20 md:w-20 md:h-full border-b md:border-b-0 md:border-r border-white/5 bg-[#050505]/50 backdrop-blur-xl flex flex-row md:flex-col items-center py-2 px-4 md:py-6 md:px-0 gap-4 z-40 overflow-x-auto md:overflow-x-hidden md:overflow-y-auto custom-scrollbar shrink-0 order-first">
                     <button
                         onClick={resetEditor}
                         className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 flex items-center justify-center text-white/50 hover:text-white transition-all duration-200 shrink-0 mb-2 group shadow-lg"
@@ -641,9 +641,9 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                     </AnimatePresence>
 
                     {/* Floating Toolbar (Bottom Center) */}
-                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col gap-4 items-center z-50">
+                    <div className="absolute bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 flex flex-col gap-4 items-center z-50 w-full px-4 md:w-auto md:px-0">
                         <motion.div
-                            className={`flex items-center gap-2 p-2 bg-[#1A1A1A]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl w-[500px] transition-all duration-500 relative overflow-hidden ${safetyWarning ? 'shadow-[0_0_40px_rgba(255,0,0,0.15)] border-red-500/30' : ''}`}
+                            className={`flex items-center gap-2 p-2 bg-[#1A1A1A]/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl w-full md:w-[500px] transition-all duration-500 relative overflow-hidden ${safetyWarning ? 'shadow-[0_0_40px_rgba(255,0,0,0.15)] border-red-500/30' : ''}`}
                             initial={{ y: 20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                         >

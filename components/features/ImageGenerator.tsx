@@ -155,7 +155,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
                 <motion.h1
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-5xl md:text-6xl font-display font-bold text-white mb-4 tracking-tight"
+                    className="text-3xl md:text-6xl font-display font-bold text-white mb-4 tracking-tight"
                 >
                     Imagine <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-light to-brand">Anything</span>
                 </motion.h1>
@@ -231,7 +231,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
                                 }
                             }}
                             placeholder={isLoggedIn ? "Describe your imagination... (e.g. A futuristic city with neon lights, cyberpunk style, 8k resolution)" : "Sign in to start creating..."}
-                            className={`w-full bg-transparent text-white text-lg placeholder:text-gray-600 p-6 min-h-[100px] resize-none focus:outline-none transition-all ${!isLoggedIn ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`w-full bg-transparent text-white text-lg placeholder:text-gray-600 p-4 md:p-6 min-h-[100px] resize-none focus:outline-none transition-all ${!isLoggedIn ? 'opacity-50 cursor-not-allowed' : ''}`}
                             disabled={!isLoggedIn}
                         />
 

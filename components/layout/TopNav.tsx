@@ -15,7 +15,7 @@ const TopNav: React.FC<TopNavProps> = ({ currentView, onNavigate, currentUser, o
     const navItems = React.useMemo(() => [
         { icon: <Image size={18} />, label: 'Generate', id: 'generate', active: currentView === 'generate' },
         { icon: <Wand2 size={18} />, label: 'Edit', id: 'edit', active: currentView === 'edit' },
-        { icon: <Folder size={18} />, label: 'Projects', id: 'projects', active: currentView === 'projects' },
+        { icon: <Folder size={18} />, label: 'Gallery', id: 'projects', active: currentView === 'projects' },
         { icon: <Users size={18} />, label: 'Team', id: 'team', active: currentView === 'team' },
         { icon: <BarChart2 size={18} />, label: 'Usage', id: 'usage', active: currentView === 'usage' },
     ], [currentView]);
@@ -32,18 +32,12 @@ const TopNav: React.FC<TopNavProps> = ({ currentView, onNavigate, currentUser, o
                 <div className="flex items-center p-1.5 glass-panel rounded-full shadow-2xl shadow-black/20 backdrop-blur-xl bg-[#050505]/80 border border-white/10">
 
                     {/* Logo Section */}
-                    <div className="hidden md:flex pl-4 pr-6 items-center gap-3 border-r border-white/10 mr-2">
-                        <div className="w-8 h-8 bg-gradient-brand rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(255,0,85,0.4)]">
-                            <img
-                                src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1763703060/35536363463_q7rajl.png"
-                                alt="Logo"
-                                className="w-5 h-5 invert brightness-0"
-                            />
-                        </div>
-                        {/* Horizontal Text Layout */}
-                        <div className="flex items-center gap-1 leading-none">
-                            <span className="font-display font-bold text-sm text-white">Click-Engine</span>
-                        </div>
+                    <div className="hidden md:flex pl-6 pr-6 items-center border-r border-white/10 mr-2">
+                        <img
+                            src="https://res.cloudinary.com/dx30xwfbj/image/upload/v1763703060/35536363463_q7rajl.png"
+                            alt="Logo"
+                            className="w-8 h-8 invert brightness-0"
+                        />
                     </div>
 
                     {/* Navigation Links */}

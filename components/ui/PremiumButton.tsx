@@ -27,11 +27,11 @@ const PremiumButton: React.FC<PremiumButtonProps> = ({
         secondary: "bg-surface border border-white/10 text-white hover:bg-white/5 hover:border-white/20 text-sm",
         glass: "bg-white/5 backdrop-blur-md border border-white/10 text-white hover:bg-white/10 hover:border-white/20 text-sm",
         glow: `
-            bg-gradient-to-b from-[#FF2E7E] to-[#FF0055] text-white text-sm font-bold
-            border-t border-white/50 border-b border-[#990033]/30
-            shadow-[0_10px_30px_-10px_rgba(255,0,85,0.6),0_4px_12px_-4px_rgba(255,46,126,0.3),inset_0_1px_0_rgba(255,255,255,0.4)]
-            hover:shadow-[0_20px_40px_-12px_rgba(255,0,85,0.7),0_8px_16px_-6px_rgba(255,0,85,0.2),inset_0_1px_0_rgba(255,255,255,0.5)]
-            active:shadow-[inset_0_2px_6px_rgba(0,0,0,0.2)]
+            bg-[#E91E63] text-white text-sm font-bold
+            border-t border-white/20 border-b border-black/20
+            shadow-[0_4px_14px_-4px_rgba(233,30,99,0.5),inset_0_1px_0_rgba(255,255,255,0.2)]
+            hover:shadow-[0_6px_20px_-6px_rgba(233,30,99,0.6),inset_0_1px_0_rgba(255,255,255,0.3)]
+            active:shadow-inner
         `
     };
 

@@ -51,7 +51,7 @@ const DesignersList: React.FC<DesignersListProps> = ({ projects = [], currentUse
                     transition={{ duration: 0.6 }}
                 >
                     <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-4 tracking-tight">
-                        The <span className="text-transparent bg-clip-text bg-gradient-brand">Team</span>
+                        The <span className="text-[#E91E63]">Team</span>
                     </h1>
                     <p className="text-gray-400 text-lg max-w-2xl mx-auto font-medium">
                         Explore the visionary artists behind the masterpieces.
@@ -67,9 +67,9 @@ const DesignersList: React.FC<DesignersListProps> = ({ projects = [], currentUse
                     return (
                         <motion.div
                             key={designer.id}
-                            initial={{ opacity: 0, y: 20 }}
+                            initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.05 }}
+                            transition={{ duration: 0.4, ease: "easeOut", delay: idx * 0.05 }}
                             layoutId={`designer-${designer.id}`}
                             onClick={() => setSelectedDesigner(designer)}
                             className="group relative h-[320px] rounded-3xl cursor-pointer overflow-hidden bg-[#0A0A0A] border border-white/5 hover:border-white/20 transition-all duration-500 shadow-xl hover:shadow-2xl hover:shadow-brand/5"

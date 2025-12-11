@@ -23,7 +23,7 @@ interface ProjectsProps {
     onEditImage?: (imageUrl: string) => void;
 }
 
-const ITEMS_PER_PAGE = 64;
+const ITEMS_PER_PAGE = 60; // Divisible by 2, 3, 4, 5 for perfect grids
 
 const Projects: React.FC<ProjectsProps> = ({ projects, currentUser, onOpenAuth, onEditImage }) => {
     const [filter, setFilter] = useState<'all' | 'mine'>('all');
@@ -54,6 +54,7 @@ const Projects: React.FC<ProjectsProps> = ({ projects, currentUser, onOpenAuth, 
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const currentProjects = filteredProjects.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
+    // ... (handlers remain the same) ...
     const handleDownload = async (imageUrl: string, prompt: string) => {
         try {
             const response = await fetch(imageUrl);
@@ -96,155 +97,120 @@ const Projects: React.FC<ProjectsProps> = ({ projects, currentUser, onOpenAuth, 
     };
 
     return (
-        <div className="max-w-7xl mx-auto min-h-screen flex flex-col">
+        <div className="max-w-[1600px] mx-auto min-h-screen flex flex-col px-4 md:px-8 py-8">
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-4xl font-display font-bold text-white mb-2">
-                        Project <span className="text-transparent bg-clip-text bg-gradient-brand">Gallery</span>
+                    <h1 className="text-4xl font-display font-bold text-white mb-2 tracking-tight">
+                        The <span className="text-[#E91E63]">Gallery</span>
                     </h1>
-                    <p className="text-gray-400">Explore creations from the team.</p>
+                    <p className="text-gray-400 text-sm">Explore the team's creations.</p>
                 </div>
 
-                <div className="flex gap-2 bg-surface-glass border border-glass-border p-1 rounded-xl">
+                <div className="flex gap-1 bg-white/5 p-1 rounded-lg">
                     <button
                         onClick={() => setFilter('all')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'all' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                        className={`px-4 py-1.5 rounded-md text-xs font-medium transition-colors ${filter === 'all' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
                     >
-                        All Projects
+                        All
                     </button>
                     <button
                         onClick={() => setFilter('mine')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'mine' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                        className={`px-4 py-1.5 rounded-md text-xs font-medium transition-colors ${filter === 'mine' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
                     >
-                        My Creations
+                        Mine
                     </button>
                 </div>
             </div>
 
             <div className="flex-grow">
                 {filteredProjects.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 text-center h-full">
-                        <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6">
-                            <User size={32} className="text-gray-600" />
+                    <div className="flex flex-col items-center justify-center py-32 text-center h-full">
+                        <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-4 text-white/20">
+                            <Wand2 size={32} />
                         </div>
-                        <h3 className="text-xl font-bold text-white mb-2">No projects found</h3>
-                        <p className="text-gray-500 max-w-md mx-auto">
-                            {filter === 'mine' ? "You haven't generated any images yet." : "Start generating images to populate your team's gallery."}
+                        <h3 className="text-lg font-medium text-white mb-2">No masterpieces yet</h3>
+                        <p className="text-gray-500 text-sm max-w-sm mx-auto">
+                            {filter === 'mine' ? "Your portfolio is empty. Time to create something." : "The gallery is waiting for its first creation."}
                         </p>
                     </div>
                 ) : (
                     <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
-                            {currentProjects.map((project, index) => (
-                                <GlassCard key={project.id} className="group relative overflow-hidden" noPadding>
-                                    {/* Image */}
-                                    <div className="aspect-[4/3] bg-gray-900 relative overflow-hidden cursor-pointer" onClick={() => setSelectedImage(project)}>
-                                        {project.imageUrl ? (
-                                            <img
-                                                src={getOptimizedImageUrl(project.imageUrl, 600)}
-                                                alt={project.prompt}
-                                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                                onError={(e) => {
-                                                    (e.target as HTMLImageElement).style.display = 'none';
-                                                    (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                                                }}
-                                                loading={index < 8 ? "eager" : "lazy"}
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full bg-gradient-to-br from-gray-800 to-black flex items-center justify-center">
-                                                <span className="text-xs text-gray-600">Generating...</span>
+                        {/* Rounded Grid Container */}
+                        <div className="rounded-3xl overflow-hidden border border-white/5 bg-[#050505] shadow-2xl">
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
+                                {[
+                                    ...currentProjects,
+                                    ...Array(Math.max(0, ITEMS_PER_PAGE - currentProjects.length)).fill({
+                                        id: 'placeholder',
+                                        isPlaceholder: true,
+                                        prompt: 'Future creation slot',
+                                        author: 'System'
+                                    })
+                                ].map((project, index) => (
+                                    <div
+                                        key={project.id === 'placeholder' ? `placeholder-${index}` : project.id}
+                                        className={`aspect-[4/3] relative overflow-hidden group bg-[#0A0A0A] ${project.isPlaceholder ? 'cursor-default' : 'cursor-pointer'}`}
+                                        onClick={() => !project.isPlaceholder && setSelectedImage(project)}
+                                    >
+                                        {project.isPlaceholder ? (
+                                            /* Skeleton / "Transparent" Placeholder */
+                                            <div className="w-full h-full bg-white/[0.02] border border-white/5 flex flex-col items-center justify-center">
+                                                <div className="w-full h-full bg-gradient-to-br from-transparent via-white/[0.02] to-transparent bg-[200%_auto] animate-pulse"></div>
                                             </div>
+                                        ) : (
+                                            <img
+                                                src={getOptimizedImageUrl(project.imageUrl, 800, 90)}
+                                                alt={project.prompt}
+                                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                                loading={index < 10 ? "eager" : "lazy"}
+                                            />
                                         )}
 
-                                        {/* Fallback for broken images */}
-                                        <div className="hidden absolute inset-0 bg-gradient-to-br from-gray-800 to-black flex items-center justify-center pointer-events-none">
-                                            <span className="text-xs text-gray-500">Image not available</span>
-                                        </div>
-
-                                        {/* Overlay */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 pointer-events-none">
-                                            <div className="flex items-center justify-between pointer-events-auto">
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); handleDownload(getOriginalImageUrl(project.imageUrl), project.prompt); }}
-                                                        className="p-2 rounded-full bg-white/10 hover:bg-white hover:text-black text-white backdrop-blur-md transition-all duration-200 hover:scale-105"
-                                                        title="Download"
-                                                    >
-                                                        <Download size={16} />
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); handleCopyPrompt(project.prompt, project.id); }}
-                                                        className="p-2 rounded-full bg-white/10 hover:bg-white hover:text-black text-white backdrop-blur-md transition-all duration-200 hover:scale-105"
-                                                        title="Copy Prompt"
-                                                    >
-                                                        {copiedId === project.id ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
-                                                    </button>
+                                        {/* Minimal Overlay - Always visible Author (Hide on placeholder) */}
+                                        {!project.isPlaceholder && (
+                                            <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-12 flex items-end justify-between opacity-100 transition-opacity">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-5 h-5 rounded-full bg-[#E91E63] flex items-center justify-center text-[8px] font-bold text-white overflow-hidden ring-1 ring-white/20">
+                                                        {project.authorAvatar ? (
+                                                            <img src={project.authorAvatar} alt={project.author} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <span>{project.author?.charAt(0)}</span>
+                                                        )}
+                                                    </div>
+                                                    <span className="text-[10px] font-medium text-white/90 drop-shadow-md">{project.author}</span>
                                                 </div>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); setSelectedImage(project); }}
-                                                    className="p-2 rounded-full bg-white/10 hover:bg-white hover:text-black text-white backdrop-blur-md transition-all duration-200 hover:scale-105"
-                                                    title="Expand"
-                                                >
-                                                    <Maximize2 size={16} />
-                                                </button>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
-
-                                    {/* Info */}
-                                    <div className="p-4">
-                                        <p className="text-sm text-white font-medium line-clamp-1 mb-3" title={project.prompt}>{project.prompt}</p>
-
-                                        <div className="flex items-center justify-between text-xs text-gray-400">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-6 h-6 rounded-full bg-gradient-brand flex items-center justify-center text-[8px] font-bold text-white overflow-hidden border border-white/10">
-                                                    {project.authorAvatar ? (
-                                                        <img src={project.authorAvatar} alt={project.author} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <span>{project.author.charAt(0)}</span>
-                                                    )}
-                                                </div>
-                                                <span>{project.author}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                <Calendar size={10} />
-                                                <span>{project.date} • {project.time}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
-                                            <span className="text-[10px] uppercase tracking-wider text-gray-500">{project.model}</span>
-                                        </div>
-                                    </div>
-                                </GlassCard>
-                            ))}
+                                ))}
+                            </div>
                         </div>
 
-                        {/* Premium Pagination */}
+                        {/* Pagination - Numbered Style with Magenta */}
                         {totalPages > 1 && (
-                            <div className="flex justify-center items-center py-8">
-                                <div className="flex items-center gap-2 p-2 bg-surface-glass backdrop-blur-xl border border-glass-border rounded-full shadow-2xl">
+                            <div className="flex justify-center items-center py-12 select-none">
+                                <div className="flex items-center gap-2 p-2 bg-[#0A0A0A] border border-white/5 rounded-full shadow-2xl">
                                     <button
                                         onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                         disabled={currentPage === 1}
-                                        className="p-2 rounded-full hover:bg-white/10 text-gray-400 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-gray-500 hover:text-white disabled:opacity-20 transition-all font-medium"
                                     >
-                                        <ChevronLeft size={20} />
+                                        <ChevronLeft size={16} />
                                     </button>
 
                                     <div className="flex items-center gap-1 px-2">
                                         {getPageNumbers().map((page, index) => (
                                             <React.Fragment key={index}>
                                                 {page === '...' ? (
-                                                    <span className="text-gray-500 px-2 text-sm">...</span>
+                                                    <span className="text-gray-600 px-1 text-xs">...</span>
                                                 ) : (
                                                     <button
                                                         onClick={() => setCurrentPage(Number(page))}
                                                         className={`
-                                                            w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium transition-all duration-300
+                                                            w-8 h-8 flex items-center justify-center rounded-full text-xs font-bold transition-all duration-300
                                                             ${currentPage === page
-                                                                ? 'bg-gradient-brand text-white shadow-lg scale-110'
-                                                                : 'text-gray-400 hover:text-white hover:bg-white/10'}
+                                                                ? 'bg-[#E91E63] text-white shadow-lg shadow-pink-500/20 scale-110'
+                                                                : 'text-gray-500 hover:text-white hover:bg-white/5'}
                                                         `}
                                                     >
                                                         {page}
@@ -257,9 +223,9 @@ const Projects: React.FC<ProjectsProps> = ({ projects, currentUser, onOpenAuth, 
                                     <button
                                         onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                                         disabled={currentPage === totalPages}
-                                        className="p-2 rounded-full hover:bg-white/10 text-gray-400 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                                        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 text-gray-500 hover:text-white disabled:opacity-20 transition-all font-medium"
                                     >
-                                        <ChevronRight size={20} />
+                                        <ChevronRight size={16} />
                                     </button>
                                 </div>
                             </div>
@@ -268,65 +234,123 @@ const Projects: React.FC<ProjectsProps> = ({ projects, currentUser, onOpenAuth, 
                 )}
             </div>
 
-            {/* Lightbox Modal */}
+            {/* Apple-style Split Lightbox */}
             <AnimatePresence>
                 {selectedImage && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl p-4 md:p-10"
+                        className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-3xl flex items-center justify-center p-4 md:p-8"
                         onClick={() => setSelectedImage(null)}
                     >
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className="relative max-w-7xl w-full max-h-[90vh] flex flex-col items-center overflow-y-auto custom-scrollbar p-4"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <img
-                                src={getOptimizedImageUrl(selectedImage.imageUrl, 1200)}
-                                alt={selectedImage.prompt}
-                                className="max-h-[70vh] w-auto object-contain rounded-lg shadow-2xl border border-white/10 shrink-0"
-                            />
-
-                            <div className="mt-6 flex items-center gap-4 bg-black/50 backdrop-blur-md px-6 py-3 rounded-full border border-white/10 shrink-0">
-                                <span className="text-white/80 text-sm font-medium mr-4 border-r border-white/10 pr-4">{selectedImage.model}</span>
-                                <button
-                                    onClick={() => handleDownload(getOriginalImageUrl(selectedImage.imageUrl), selectedImage.prompt)}
-                                    className="flex items-center gap-2 text-white hover:text-brand transition-colors text-sm font-medium"
-                                >
-                                    <Download size={16} /> Download
-                                </button>
-                                <button
-                                    onClick={() => handleCopyPrompt(selectedImage.prompt, selectedImage.id)}
-                                    className="flex items-center gap-2 text-white hover:text-brand transition-colors text-sm font-medium"
-                                >
-                                    {copiedId === selectedImage.id ? <Check size={16} /> : <Copy size={16} />} Copy Prompt
-                                </button>
-                                {onEditImage && (
-                                    <button
-                                        onClick={() => onEditImage && onEditImage(getOriginalImageUrl(selectedImage.imageUrl))}
-                                        className="flex items-center gap-2 text-white hover:text-brand transition-colors text-sm font-medium pl-4 border-l border-white/10"
-                                    >
-                                        <Wand2 size={16} /> Edit
-                                    </button>
-                                )}
-                            </div>
-
-                            {/* Full Prompt Display */}
-                            <div className="mt-4 max-w-2xl text-center shrink-0 pb-4">
-                                <p className="text-gray-400 text-sm">{selectedImage.prompt}</p>
-                            </div>
-
+                        <div className="absolute top-4 right-4 z-50">
                             <button
                                 onClick={() => setSelectedImage(null)}
-                                className="absolute top-4 right-4 p-2 text-white/50 hover:text-white transition-colors bg-black/50 rounded-full backdrop-blur-md z-50"
+                                className="p-2 text-white/50 hover:text-white transition-colors bg-white/5 hover:bg-white/10 rounded-full"
                             >
-                                <X size={24} />
+                                <X size={20} />
                             </button>
-                        </motion.div>
+                        </div>
+
+                        <div className="w-full max-w-7xl h-full max-h-[90vh] flex flex-col md:flex-row gap-6 lg:gap-12" onClick={(e) => e.stopPropagation()}>
+
+                            {/* Left: Image Area */}
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="flex-1 flex items-center justify-center relative bg-[#050505] rounded-2xl overflow-hidden shadow-2xl border border-white/5"
+                            >
+                                <img
+                                    src={getOptimizedImageUrl(selectedImage.imageUrl, 1600, 100)}
+                                    alt={selectedImage.prompt}
+                                    className="max-h-full max-w-full object-contain"
+                                />
+                            </motion.div>
+
+                            {/* Right: Sidebar Info */}
+                            <motion.div
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.1 }}
+                                className="w-full md:w-[320px] lg:w-[380px] flex flex-col shrink-0 h-full overflow-y-auto custom-scrollbar"
+                            >
+                                <div className="space-y-6">
+                                    {/* Author Info */}
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-[#E91E63] flex items-center justify-center text-xs font-bold text-white overflow-hidden ring-2 ring-white/10">
+                                            {selectedImage.authorAvatar ? (
+                                                <img src={selectedImage.authorAvatar} alt={selectedImage.author} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span>{selectedImage.author.charAt(0)}</span>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <h3 className="text-sm font-bold text-white">{selectedImage.author}</h3>
+                                            <p className="text-xs text-green-400 flex items-center gap-1">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                                Author
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Prompt Card */}
+                                    <div className="bg-[#111] p-4 rounded-xl border border-white/5 hover:border-white/10 transition-colors group">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Prompt</span>
+                                            <button
+                                                onClick={() => handleCopyPrompt(selectedImage.prompt, selectedImage.id)}
+                                                className="text-[10px] text-gray-500 hover:text-white transition-colors flex items-center gap-1"
+                                            >
+                                                {copiedId === selectedImage.id ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                                                {copiedId === selectedImage.id ? 'Copied' : 'Copy'}
+                                            </button>
+                                        </div>
+                                        <p className="text-sm text-gray-300 leading-relaxed font-light">
+                                            {selectedImage.prompt}
+                                        </p>
+                                    </div>
+
+                                    {/* Details Grid */}
+                                    <div className="grid grid-cols-1 gap-2">
+                                        <div className="bg-[#111] p-3 rounded-xl border border-white/5 flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Calendar size={14} className="text-gray-500" />
+                                                <span className="text-xs text-gray-400">Created</span>
+                                            </div>
+                                            <span className="text-xs text-white font-medium">{selectedImage.date} • {selectedImage.time}</span>
+                                        </div>
+                                        <div className="bg-[#111] p-3 rounded-xl border border-white/5 flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Wand2 size={14} className="text-gray-500" />
+                                                <span className="text-xs text-gray-400">Model</span>
+                                            </div>
+                                            <span className="text-xs text-white font-medium">{selectedImage.model}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="pt-4 grid grid-cols-2 gap-3">
+                                        <button
+                                            onClick={() => handleDownload(getOriginalImageUrl(selectedImage.imageUrl), selectedImage.prompt)}
+                                            className="flex items-center justify-center gap-2 p-3 bg-white text-black rounded-xl text-xs font-bold hover:bg-gray-200 transition-colors shadow-lg shadow-white/5"
+                                        >
+                                            <Download size={14} />
+                                            Download
+                                        </button>
+                                        {onEditImage && (
+                                            <button
+                                                onClick={() => onEditImage && onEditImage(getOriginalImageUrl(selectedImage.imageUrl))}
+                                                className="flex items-center justify-center gap-2 p-3 bg-[#1A1A1A] text-white border border-white/10 rounded-xl text-xs font-bold hover:bg-[#222] transition-colors"
+                                            >
+                                                <Wand2 size={14} />
+                                                Remix / Edit
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>

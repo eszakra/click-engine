@@ -98,11 +98,12 @@ export const ProjectsService = {
                     body: {
                         prompt: enhancedPrompt,
                         model: apiModelId,
+                        resolution: projectData.resolution || '1k',
+                        aspectRatio: aspectRatio,
                         provider: provider,
                         referenceImage: projectData.referenceImage,
                         referenceImageMimeType: projectData.referenceImageMimeType,
-                        aspectRatio: aspectRatio,
-                        resolution: projectData.resolution
+
                     }
                 });
 

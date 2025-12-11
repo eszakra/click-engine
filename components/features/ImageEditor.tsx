@@ -204,8 +204,10 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
             let base64Data: string;
             let mimeType: string;
 
-            if (generatedImage) {
-                const response = await fetch(generatedImage);
+            const sourceImage = generatedImage || uploadedImage;
+
+            if (sourceImage.startsWith('http')) {
+                const response = await fetch(sourceImage);
                 const blob = await response.blob();
                 const base64 = await new Promise<string>((resolve) => {
                     const reader = new FileReader();
@@ -219,7 +221,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                 mimeType = mimeTypePrefix.split(':')[1];
                 base64Data = data;
             } else {
-                const [mimeTypePrefix, data] = uploadedImage.split(';base64,');
+                const [mimeTypePrefix, data] = sourceImage.split(';base64,');
                 mimeType = mimeTypePrefix.split(':')[1];
                 base64Data = data;
             }
@@ -447,14 +449,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-white/5">
-                        <button className="p-2 hover:bg-white/10 rounded-md transition-colors text-gray-400 hover:text-white disabled:opacity-50" title="Undo">
-                            <Undo size={16} />
-                        </button>
-                        <button className="p-2 hover:bg-white/10 rounded-md transition-colors text-gray-400 hover:text-white disabled:opacity-50" title="Redo">
-                            <Redo size={16} />
-                        </button>
-                    </div>
+
                     <button
                         onClick={handleDownload}
                         disabled={!uploadedImage}

@@ -157,7 +157,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
                     animate={{ opacity: 1, y: 0 }}
                     className="text-3xl md:text-6xl font-display font-bold text-white mb-4 tracking-tight"
                 >
-                    Imagine <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-light to-brand">Anything</span>
+                    Imagine <span className="text-[#E91E63]">Anything</span>
                 </motion.h1>
             </div>
 
@@ -211,8 +211,8 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
                 transition={{ delay: 0.3 }}
                 className="relative z-20 mb-10 max-w-4xl mx-auto w-full"
             >
-                <div className={`relative group rounded-3xl p-[1px] bg-gradient-to-b from-white/20 to-white/5 shadow-2xl shadow-black/50 transition-all duration-500 ${safetyWarning ? 'shadow-[0_0_40px_rgba(255,0,0,0.15)]' : ''}`}>
-                    <div className={`absolute inset-0 bg-gradient-to-r from-brand/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl blur-xl ${safetyWarning ? 'opacity-0' : ''}`} />
+                <div className={`relative group rounded-3xl p-[1px] bg-white/10 shadow-2xl shadow-black/50 transition-all duration-500 ${safetyWarning ? 'shadow-[0_0_40px_rgba(255,0,0,0.15)]' : ''}`}>
+                    <div className={`absolute inset-0 bg-[#E91E63]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl blur-xl ${safetyWarning ? 'opacity-0' : ''}`} />
 
                     {/* Red Liquid Glow for Warning */}
                     <div className={`absolute inset-0 bg-gradient-to-r from-red-600/20 via-orange-500/10 to-red-600/20 opacity-0 transition-opacity duration-500 rounded-3xl blur-xl ${safetyWarning ? 'opacity-100 animate-pulse' : ''}`} />
@@ -349,7 +349,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onGenerate, isLoggedIn,
                                     className="group relative aspect-video rounded-xl overflow-hidden bg-white/5 border border-white/10 shadow-lg hover:shadow-2xl hover:border-white/20 transition-all duration-200"
                                 >
                                     <img
-                                        src={getOptimizedImageUrl(project.imageUrl, 600)}
+                                        src={getOptimizedImageUrl(project.imageUrl, 800, 90)}
                                         alt={project.prompt}
                                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 cursor-pointer"
                                         onClick={() => setSelectedImage(project)}

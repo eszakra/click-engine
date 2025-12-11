@@ -3,31 +3,64 @@ import { motion } from 'framer-motion';
 import { PieChart, BarChart, Activity, Zap, Layers } from 'lucide-react';
 import GlassCard from '../ui/GlassCard';
 
+import { WalletService, UsageStats } from '../../services/wallet';
+
 const UsageDashboard: React.FC = () => {
-    // Get user credits
-    const userJson = localStorage.getItem('click_tools_current_user');
-    const user = userJson ? JSON.parse(userJson) : null;
-    const credits = user?.credits || 0;
+    // Get real wallet balance
+    const [credits, setCredits] = React.useState(0);
+    const [usageStats, setUsageStats] = React.useState<UsageStats | null>(null);
+    const TOTAL_QUOTA = 20000; // ~$200 USD visual cap
+
+    React.useEffect(() => {
+        // Initial fetch
+        WalletService.getBalance().then(setCredits);
+        WalletService.getUsageStats().then(setUsageStats);
+
+        // Real-time subscription to balance
+        const unsubscribe = WalletService.subscribeToBalance((newBalance) => {
+            setCredits(newBalance);
+            // Refetch stats when balance changes (implies new generation)
+            WalletService.getUsageStats().then(setUsageStats);
+        });
+
+        return () => {
+            unsubscribe();
+        };
+    }, []);
 
     // Mock Data (Updated with real credits)
     const stats = [
-        { label: 'Total Credits', value: '5,000', sub: 'Monthly Quota', icon: <Zap size={20} className="text-yellow-400" /> },
-        { label: 'Credits Used', value: (5000 - credits).toLocaleString(), sub: `${Math.round(((5000 - credits) / 5000) * 100)}% Used`, icon: <Activity size={20} className="text-brand" /> },
+        { label: 'Total Budget (Est.)', value: TOTAL_QUOTA.toLocaleString(), sub: 'Monthly Allocation', icon: <Zap size={20} className="text-yellow-400" /> },
+        { label: 'Credits Used', value: (TOTAL_QUOTA - credits).toLocaleString(), sub: `${Math.round(((TOTAL_QUOTA - credits) / TOTAL_QUOTA) * 100)}% Used`, icon: <Activity size={20} className="text-brand" /> },
         { label: 'Remaining', value: credits.toLocaleString(), sub: 'Expires in 12 days', icon: <Layers size={20} className="text-blue-400" /> },
     ];
 
-    const modelUsage = [
-        { name: 'Krea 1', used: 1200, color: 'bg-brand' },
-        { name: 'Flux', used: 800, color: 'bg-blue-500' },
-        { name: 'Nano Banana', used: 300, color: 'bg-yellow-500' },
-        { name: 'Others', used: 150, color: 'bg-gray-500' },
+    const modelUsage = usageStats?.modelUsage || [
+        { name: 'Nano Banana Pro', used: 0, color: 'bg-brand' },
+        { name: 'Nano Banana', used: 0, color: 'bg-yellow-500' }
     ];
+
+    // Generate last 7 days labels
+    const getDayLabels = () => {
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const today = new Date();
+        const labels = [];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - i);
+            labels.push(days[d.getDay()]);
+        }
+        return labels;
+    };
+
+    const dailyData = usageStats?.dailyActivity || [0, 0, 0, 0, 0, 0, 0];
+    const maxActivity = Math.max(...dailyData, 10); // Scale graph based on activity
 
     return (
         <div className="max-w-5xl mx-auto">
             <div className="mb-8">
                 <h1 className="text-4xl font-display font-bold text-white mb-2">
-                    Usage <span className="text-transparent bg-clip-text bg-gradient-brand">Statistics</span>
+                    Usage <span className="text-[#E91E63]">Statistics</span>
                 </h1>
                 <p className="text-gray-400">Track team consumption and resource allocation.</p>
             </div>
@@ -65,7 +98,7 @@ const UsageDashboard: React.FC = () => {
                                 <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                                     <motion.div
                                         initial={{ width: 0 }}
-                                        animate={{ width: `${(model.used / 5000) * 100}%` }}
+                                        animate={{ width: `${(model.used / TOTAL_QUOTA) * 100}%` }}
                                         transition={{ duration: 1, delay: index * 0.1 }}
                                         className={`h-full ${model.color}`}
                                     />
@@ -82,11 +115,12 @@ const UsageDashboard: React.FC = () => {
                         Daily Activity
                     </h3>
                     <div className="h-[200px] flex items-end justify-between gap-2 px-2">
-                        {[40, 65, 30, 80, 55, 90, 45].map((height, i) => (
-                            <div key={i} className="w-full bg-white/5 rounded-t-lg relative group hover:bg-white/10 transition-colors">
+                        {dailyData.map((count, i) => (
+                            <div key={i} className="w-full bg-white/5 rounded-t-lg relative group hover:bg-white/10 transition-colors tooltip-trigger"
+                                title={`${count} generations`}>
                                 <motion.div
                                     initial={{ height: 0 }}
-                                    animate={{ height: `${height}%` }}
+                                    animate={{ height: `${(count / maxActivity) * 100}%` }}
                                     transition={{ duration: 0.8, delay: i * 0.1 }}
                                     className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-brand/20 to-brand/80 rounded-t-lg mx-1"
                                 />
@@ -94,13 +128,9 @@ const UsageDashboard: React.FC = () => {
                         ))}
                     </div>
                     <div className="flex justify-between mt-4 text-xs text-gray-500 px-2">
-                        <span>Mon</span>
-                        <span>Tue</span>
-                        <span>Wed</span>
-                        <span>Thu</span>
-                        <span>Fri</span>
-                        <span>Sat</span>
-                        <span>Sun</span>
+                        {getDayLabels().map((day, i) => (
+                            <span key={i}>{day}</span>
+                        ))}
                     </div>
                 </GlassCard>
             </div>

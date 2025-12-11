@@ -11,13 +11,13 @@ interface TopNavProps {
 }
 
 const TopNav: React.FC<TopNavProps> = ({ currentView, onNavigate, currentUser, onOpenAuth, onOpenSettings }) => {
-    const navItems = [
+    const navItems = React.useMemo(() => [
         { icon: <Image size={18} />, label: 'Generate', id: 'generate', active: currentView === 'generate' },
         { icon: <Wand2 size={18} />, label: 'Edit', id: 'edit', active: currentView === 'edit' },
         { icon: <Folder size={18} />, label: 'Projects', id: 'projects', active: currentView === 'projects' },
         { icon: <Users size={18} />, label: 'Team', id: 'team', active: currentView === 'team' },
         { icon: <BarChart2 size={18} />, label: 'Usage', id: 'usage', active: currentView === 'usage' },
-    ];
+    ], [currentView]);
 
     return (
         <motion.div
@@ -60,7 +60,7 @@ const TopNav: React.FC<TopNavProps> = ({ currentView, onNavigate, currentUser, o
                                     <motion.span
                                         layoutId="active-pill"
                                         className="absolute inset-0 bg-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] border border-white/5 rounded-full -z-10"
-                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                                     />
                                 )}
                                 <span className="relative z-10 flex items-center gap-2">

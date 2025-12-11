@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { DesignersService, Designer } from '../../services/designers';
 import UserProfileModal from './UserProfileModal';
 import { Project } from '../../services/projects';
+import { Wand2, Image as ImageIcon, Sparkles } from 'lucide-react';
 
 interface DesignersListProps {
     projects?: Project[];
@@ -22,63 +23,113 @@ const DesignersList: React.FC<DesignersListProps> = ({ projects = [], currentUse
 
     useEffect(() => {
         loadDesigners();
-        const interval = setInterval(loadDesigners, 5000);
+        const interval = setInterval(loadDesigners, 30000); // Metadata refresh
         return () => clearInterval(interval);
     }, []);
 
+    // Helper to get stats and latest art
+    const getDesignerStats = (designerName: string) => {
+        const userProjects = projects.filter(p => p.author === designerName);
+        // Sort by id assuming newer ids are larger/newer, or if we had a timestamp. 
+        // For now, reverse formatting usually puts new ones first in current logic, 
+        // but let's assume index 0 of filtered list is newest if the parent list is ordered.
+
+        // Actually, let's find the absolute latest based on order in 'projects' array (usually newest first).
+        const latestProject = userProjects[0];
+        const count = userProjects.length;
+
+        return { latestProject, count };
+    };
+
     return (
-        <div className="max-w-7xl mx-auto px-6">
-            <div className="mb-10 text-center">
-                <h1 className="text-4xl font-display font-semibold text-white mb-3 tracking-tight">
-                    The <span className="text-transparent bg-clip-text bg-gradient-brand">Team</span>
-                </h1>
-                <p className="text-gray-400 text-base max-w-xl mx-auto font-medium">
-                    Creative minds behind the magic.
-                </p>
+        <div className="max-w-7xl mx-auto px-4 md:px-6 pb-24">
+            <div className="mb-12 text-center relative z-10">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                >
+                    <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-4 tracking-tight">
+                        The <span className="text-transparent bg-clip-text bg-gradient-brand">Team</span>
+                    </h1>
+                    <p className="text-gray-400 text-lg max-w-2xl mx-auto font-medium">
+                        Explore the visionary artists behind the masterpieces.
+                    </p>
+                </motion.div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {designers.map((designer) => (
-                    <motion.div
-                        key={designer.id}
-                        layoutId={`designer-${designer.id}`}
-                        onClick={() => setSelectedDesigner(designer)}
-                        className="cursor-pointer group relative"
-                    >
-                        <div className="h-full bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl p-5 flex flex-col items-center text-center transition-all duration-300 hover:scale-[1.02] hover:shadow-xl backdrop-blur-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {designers.map((designer, idx) => {
+                    const stats = getDesignerStats(designer.name);
+                    const hasArt = !!stats.latestProject;
 
-                            {/* Avatar */}
-                            <div className="relative mb-3">
-                                <div className="w-16 h-16 rounded-full p-0.5 bg-gradient-to-br from-white/10 to-white/5 border border-white/10 group-hover:border-brand/30 transition-colors">
-                                    <img
-                                        src={designer.avatar}
-                                        alt={designer.name}
-                                        className="w-full h-full rounded-full object-cover bg-gray-800"
-                                    />
+                    return (
+                        <motion.div
+                            key={designer.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: idx * 0.05 }}
+                            layoutId={`designer-${designer.id}`}
+                            onClick={() => setSelectedDesigner(designer)}
+                            className="group relative h-[320px] rounded-3xl cursor-pointer overflow-hidden bg-[#0A0A0A] border border-white/5 hover:border-white/20 transition-all duration-500 shadow-xl hover:shadow-2xl hover:shadow-brand/5"
+                        >
+                            {/* Dynamic Background */}
+                            <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
+                                {hasArt ? (
+                                    <>
+                                        <img
+                                            src={stats.latestProject?.imageUrl}
+                                            alt="Art"
+                                            className="w-full h-full object-cover opacity-50 group-hover:opacity-100 transition-opacity duration-500 blur-sm group-hover:blur-0"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/80 to-transparent group-hover:via-[#050505]/40 transition-all duration-500" />
+                                    </>
+                                ) : (
+                                    <div className="w-full h-full bg-gradient-to-br from-gray-900 to-black relative overflow-hidden">
+                                        <div className="absolute inset-0 opacity-10"
+                                            style={{
+                                                backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)',
+                                                backgroundSize: '20px 20px'
+                                            }}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Content Layer */}
+                            <div className="absolute inset-0 p-6 flex flex-col items-center justify-center z-10">
+
+                                {/* Avatar - Floating centered initially, moves up or stays distinct */}
+                                <motion.div
+                                    className="mb-6 relative"
+                                    whileHover={{ scale: 1.1 }}
+                                >
+                                    <div className="w-20 h-20 rounded-2xl p-0.5 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-md shadow-2xl">
+                                        <img
+                                            src={designer.avatar}
+                                            alt={designer.name}
+                                            className="w-full h-full rounded-[14px] object-cover bg-[#1A1A1A]"
+                                        />
+                                    </div>
+
+                                </motion.div>
+
+                                {/* Text Info */}
+                                <div className="text-center w-full transform transition-transform duration-300 group-hover:-translate-y-2">
+                                    <h3 className="text-xl font-bold text-white mb-1 tracking-wide drop-shadow-lg">{designer.name}</h3>
+
+                                    {/* Stats Row */}
+                                    <div className="flex items-center justify-center w-full border-t border-white/5 pt-4 opacity-70 group-hover:opacity-100 transition-opacity delay-100">
+                                        <div className="flex flex-col items-center">
+                                            <span className="text-lg font-bold text-white leading-none">{stats.count}</span>
+                                            <span className="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Generations</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                {/* Status Dot */}
-                                <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-[2px] border-[#0A0A0A] ${designer.status === 'online' ? 'bg-green-500' :
-                                        designer.status === 'generating' ? 'bg-brand animate-pulse' : 'bg-gray-600'
-                                    }`} />
                             </div>
-
-                            {/* Info */}
-                            <h3 className="text-sm font-semibold text-white mb-0.5 group-hover:text-brand transition-colors tracking-wide">{designer.name}</h3>
-                            <p className="text-[11px] text-gray-500 font-medium mb-3">
-                                {designer.status === 'generating' ? 'Generating...' :
-                                    designer.status === 'online' ? 'Online' :
-                                        `Active ${designer.lastActive}`}
-                            </p>
-
-                            {/* Mini Stats Badge */}
-                            <div className="mt-auto bg-black/20 px-3 py-1 rounded-full border border-white/5">
-                                <span className="text-[10px] font-semibold text-gray-400 group-hover:text-white transition-colors">
-                                    {projects.filter(p => p.author === designer.name).length} generations
-                                </span>
-                            </div>
-                        </div>
-                    </motion.div>
-                ))}
+                        </motion.div>
+                    );
+                })}
             </div>
 
             {/* Profile Modal */}

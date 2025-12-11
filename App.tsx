@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import MainLayout from './components/layout/MainLayout';
 import ImageGenerator from './components/features/ImageGenerator';
 import ImageEditor from './components/features/ImageEditor';
@@ -12,6 +13,13 @@ import Sidebar from './components/layout/Sidebar';
 import { AuthService, User } from './services/auth';
 import { ProjectsService, Project } from './services/projects';
 import AccessRestricted from './components/ui/AccessRestricted';
+
+const pageVariants = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -20 },
+    transition: { duration: 0.3, ease: 'easeOut' }
+};
 
 const App: React.FC = () => {
     const [currentUser, setCurrentUser] = useState<User | null>(() => AuthService.getCurrentUser());
@@ -44,6 +52,8 @@ const App: React.FC = () => {
             unsubscribe();
         };
     }, []);
+
+
 
     const handleLogin = async (userData: { name: string; avatar: string }) => {
         const user = AuthService.getCurrentUser();
@@ -134,47 +144,82 @@ const App: React.FC = () => {
             <main className="max-w-7xl mx-auto pt-20 md:pt-28 pb-24 md:pb-6 px-4 md:px-6 min-h-screen relative">
                 {/* Keep-Alive Pattern: Generator and Editor remain mounted but hidden */}
                 <div style={{ display: currentView === 'generate' ? 'block' : 'none' }} className="h-full">
-                    <ImageGenerator
-                        onGenerate={handleGenerateRequest}
-                        isLoggedIn={!!currentUser}
-                        onEditImage={handleEditImage}
-                        selectedModel={selectedModel}
-                    />
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.4 }}
+                        key="generator"
+                    >
+                        <ImageGenerator
+                            onGenerate={handleGenerateRequest}
+                            isLoggedIn={!!currentUser}
+                            onEditImage={handleEditImage}
+                            selectedModel={selectedModel}
+                        />
+                    </motion.div>
                 </div>
 
                 <div style={{ display: currentView === 'edit' ? 'block' : 'none' }} className="h-full">
-                    {currentUser && <ImageEditor initialImage={editingImage} />}
+                    {currentUser && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.4 }}
+                            key="editor"
+                        >
+                            <ImageEditor initialImage={editingImage} />
+                        </motion.div>
+                    )}
                     {!currentUser && currentView === 'edit' && <AccessRestricted onSignIn={() => setIsAuthModalOpen(true)} />}
                 </div>
 
-
-                {currentView === 'projects' && (
-                    <Projects
-                        projects={projects}
-                        currentUser={currentUser ? currentUser.name : ''}
-                        onOpenAuth={() => setIsAuthModalOpen(true)}
-                        onEditImage={handleEditImage}
-                    />
-                )}
-                {currentView === 'team' && (
-                    currentUser ? (
-                        <DesignersList
-                            projects={projects}
-                            currentUser={currentUser ? { name: currentUser.name, avatar: currentUser.avatar } : undefined}
-                            onUpdateProfile={handleUpdateProfile}
-                            onEditImage={handleEditImage}
-                        />
-                    ) : (
-                        <AccessRestricted onSignIn={() => setIsAuthModalOpen(true)} />
-                    )
-                )}
-                {currentView === 'usage' && (
-                    currentUser ? (
-                        <UsageDashboard />
-                    ) : (
-                        <AccessRestricted onSignIn={() => setIsAuthModalOpen(true)} />
-                    )
-                )}
+                <AnimatePresence mode="wait">
+                    {currentView === 'projects' && (
+                        <motion.div
+                            key="projects"
+                            {...pageVariants}
+                            className="h-full"
+                        >
+                            <Projects
+                                projects={projects}
+                                currentUser={currentUser ? currentUser.name : ''}
+                                onOpenAuth={() => setIsAuthModalOpen(true)}
+                                onEditImage={handleEditImage}
+                            />
+                        </motion.div>
+                    )}
+                    {currentView === 'team' && (
+                        <motion.div
+                            key="team"
+                            {...pageVariants}
+                            className="h-full"
+                        >
+                            {currentUser ? (
+                                <DesignersList
+                                    projects={projects}
+                                    currentUser={currentUser ? { name: currentUser.name, avatar: currentUser.avatar } : undefined}
+                                    onUpdateProfile={handleUpdateProfile}
+                                    onEditImage={handleEditImage}
+                                />
+                            ) : (
+                                <AccessRestricted onSignIn={() => setIsAuthModalOpen(true)} />
+                            )}
+                        </motion.div>
+                    )}
+                    {currentView === 'usage' && (
+                        <motion.div
+                            key="usage"
+                            {...pageVariants}
+                            className="h-full"
+                        >
+                            {currentUser ? (
+                                <UsageDashboard />
+                            ) : (
+                                <AccessRestricted onSignIn={() => setIsAuthModalOpen(true)} />
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </main>
 
             <AuthModal

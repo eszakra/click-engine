@@ -12,6 +12,7 @@ export interface Project {
     author: string;
     date: string;
     model: string;
+    time: string;
     authorAvatar?: string;
 }
 
@@ -207,7 +208,7 @@ const Projects: React.FC<ProjectsProps> = ({ projects, currentUser, onOpenAuth, 
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 <Calendar size={10} />
-                                                <span>{project.date}</span>
+                                                <span>{project.date} • {project.time}</span>
                                             </div>
                                         </div>
 

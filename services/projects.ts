@@ -9,6 +9,7 @@ export interface Project {
     model: string;
     date: string;
     credits?: number; // Optional, returned after generation
+    time: string; // New field for creation time
 }
 
 export const ProjectsService = {
@@ -44,7 +45,8 @@ export const ProjectsService = {
                 author: record.author_name || 'Unknown',
                 authorAvatar: avatarMap.get(record.author_name) || '',
                 model: record.model || 'Unknown',
-                date: new Date(record.created_at).toLocaleDateString()
+                date: new Date(record.created_at).toLocaleDateString(),
+                time: new Date(record.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             }));
         } catch (error) {
             console.error('Error fetching projects:', error);
@@ -52,7 +54,7 @@ export const ProjectsService = {
         }
     },
 
-    create: async (projectData: Omit<Project, 'id' | 'date'> & { aspectRatio?: string, referenceImage?: string, referenceImageMimeType?: string, resolution?: string }): Promise<Project> => {
+    create: async (projectData: Omit<Project, 'id' | 'date' | 'time'> & { aspectRatio?: string, referenceImage?: string, referenceImageMimeType?: string, resolution?: string }): Promise<Project> => {
         try {
             let imageUrl = '';
             let remainingCredits: number | undefined;
@@ -192,6 +194,7 @@ export const ProjectsService = {
                 authorAvatar: projectData.authorAvatar,
                 model: modelUsed,
                 date: new Date(project.created_at).toLocaleDateString(),
+                time: new Date(project.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 credits: remainingCredits
             };
         } catch (error) {
@@ -230,7 +233,8 @@ export const ProjectsService = {
                         author: payload.new.author_name || 'Unknown',
                         authorAvatar: authorAvatar,
                         model: payload.new.model || 'Unknown',
-                        date: new Date(payload.new.created_at).toLocaleDateString()
+                        date: new Date(payload.new.created_at).toLocaleDateString(),
+                        time: new Date(payload.new.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                     };
 
                     onNewProject(newProject);

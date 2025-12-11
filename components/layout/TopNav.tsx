@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image, Folder, User, LogIn, Users, BarChart2, Wand2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { getOptimizedImageUrl } from '../../utils/imageOptimizer';
 
 interface TopNavProps {
     currentView: 'generate' | 'edit' | 'projects' | 'team' | 'usage';
@@ -81,7 +82,7 @@ const TopNav: React.FC<TopNavProps> = ({ currentView, onNavigate, currentUser, o
                         >
                             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center overflow-hidden group-hover:border-brand/50 transition-colors">
                                 {currentUser.avatar ? (
-                                    <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
+                                    <img src={getOptimizedImageUrl(currentUser.avatar, 100, 90, 'webp')} alt={currentUser.name} className="w-full h-full object-cover" />
                                 ) : (
                                     <User size={18} className="text-gray-400 group-hover:text-brand transition-colors" />
                                 )}

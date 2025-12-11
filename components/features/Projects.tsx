@@ -22,7 +22,7 @@ interface ProjectsProps {
     onEditImage?: (imageUrl: string) => void;
 }
 
-const ITEMS_PER_PAGE = 32;
+const ITEMS_PER_PAGE = 64;
 
 const Projects: React.FC<ProjectsProps> = ({ projects, currentUser, onOpenAuth, onEditImage }) => {
     const [filter, setFilter] = useState<'all' | 'mine'>('all');

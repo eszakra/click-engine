@@ -173,7 +173,7 @@ const App: React.FC = () => {
                     {!currentUser && currentView === 'edit' && <AccessRestricted onSignIn={() => setIsAuthModalOpen(true)} />}
                 </div>
 
-                <AnimatePresence mode="wait">
+                <AnimatePresence>
                     {currentView === 'projects' && (
                         <motion.div
                             key="projects"

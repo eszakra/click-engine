@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Image as ImageIcon, Edit2, Check, Download, Copy, Maximize2, Wand2 } from 'lucide-react';
 import { Project } from '../../services/projects';
 import { Designer } from '../../services/designers';
+import { getOptimizedImageUrl } from '../../utils/imageOptimizer';
 
 interface UserProfileModalProps {
     designer: Designer;
@@ -109,9 +110,13 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             <div className="w-32 h-32 rounded-full p-1.5 bg-[#0A0A0A] relative z-10">
                                 <div className="w-full h-full rounded-full overflow-hidden border-4 border-[#0A0A0A] relative">
                                     <img
-                                        src={designer.avatar}
+                                        src={getOptimizedImageUrl(designer.avatar, 200, 90, 'webp')}
                                         alt={designer.name}
                                         className="w-full h-full object-cover bg-gray-800"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).style.display = 'none';
+                                            (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-full h-full bg-gray-800 flex items-center justify-center text-white font-bold text-4xl">${designer.name.charAt(0)}</div>`;
+                                        }}
                                     />
                                 </div>
                                 {designer.status === 'online' && (
@@ -190,9 +195,10 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                         className="aspect-square rounded-xl overflow-hidden border border-white/10 relative group cursor-pointer bg-gray-900 shadow-lg"
                                     >
                                         <img
-                                            src={project.imageUrl}
+                                            src={getOptimizedImageUrl(project.imageUrl, 400)}
                                             alt={project.prompt}
                                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                            loading="lazy"
                                         />
                                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
                                             <Maximize2 className="text-white opacity-100 drop-shadow-lg" size={24} />
@@ -230,7 +236,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             onClick={(e) => e.stopPropagation()}
                         >
                             <img
-                                src={viewingImage.imageUrl}
+                                src={getOptimizedImageUrl(viewingImage.imageUrl, 1200)}
                                 alt={viewingImage.prompt}
                                 className="max-h-[75vh] w-auto object-contain rounded-lg shadow-2xl border border-white/10"
                             />

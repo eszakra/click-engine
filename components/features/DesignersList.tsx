@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { DesignersService, Designer } from '../../services/designers';
 import UserProfileModal from './UserProfileModal';
 import { Project } from '../../services/projects';
-import { Wand2, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { getOptimizedImageUrl } from '../../utils/imageOptimizer';
+import { Wand2, Image as ImageIcon, Sparkles, User } from 'lucide-react';
 
 interface DesignersListProps {
     projects?: Project[];
@@ -78,9 +79,14 @@ const DesignersList: React.FC<DesignersListProps> = ({ projects = [], currentUse
                                 {hasArt ? (
                                     <>
                                         <img
-                                            src={stats.latestProject?.imageUrl}
+                                            src={getOptimizedImageUrl(stats.latestProject?.imageUrl, 600)}
                                             alt="Art"
                                             className="w-full h-full object-cover opacity-50 group-hover:opacity-100 transition-opacity duration-500 blur-sm group-hover:blur-0"
+                                            loading={idx < 4 ? "eager" : "lazy"}
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).style.display = 'none';
+                                                // Fallback could be handled by showing the gradient div below
+                                            }}
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/80 to-transparent group-hover:via-[#050505]/40 transition-all duration-500" />
                                     </>
@@ -106,9 +112,15 @@ const DesignersList: React.FC<DesignersListProps> = ({ projects = [], currentUse
                                 >
                                     <div className="w-20 h-20 rounded-2xl p-0.5 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-md shadow-2xl">
                                         <img
-                                            src={designer.avatar}
+                                            src={getOptimizedImageUrl(designer.avatar, 200, 90, 'webp')}
                                             alt={designer.name}
                                             className="w-full h-full rounded-[14px] object-cover bg-[#1A1A1A]"
+                                            loading={idx < 8 ? "eager" : "lazy"}
+                                            onError={(e) => {
+                                                // Fallback to initial
+                                                (e.target as HTMLImageElement).style.display = 'none';
+                                                (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-full h-full rounded-[14px] bg-[#1A1A1A] flex items-center justify-center text-white font-bold text-2xl">${designer.name.charAt(0)}</div>`;
+                                            }}
                                         />
                                     </div>
 

@@ -10,6 +10,7 @@ export interface Project {
     date: string;
     credits?: number; // Optional, returned after generation
     time: string; // New field for creation time
+    referenceImage?: string; // URL of the input image if it was an edit
 }
 
 export const ProjectsService = {
@@ -46,7 +47,8 @@ export const ProjectsService = {
                 authorAvatar: avatarMap.get(record.author_name) || '',
                 model: record.model || 'Unknown',
                 date: new Date(record.created_at).toLocaleDateString(),
-                time: new Date(record.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                time: new Date(record.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                referenceImage: record.reference_image_url
             }));
         } catch (error) {
             console.error('Error fetching projects:', error);
@@ -54,7 +56,7 @@ export const ProjectsService = {
         }
     },
 
-    create: async (projectData: Omit<Project, 'id' | 'date' | 'time'> & { aspectRatio?: string, referenceImage?: string, referenceImageMimeType?: string, resolution?: string }): Promise<Project> => {
+    create: async (projectData: Omit<Project, 'id' | 'date' | 'time'> & { aspectRatio?: string, referenceImage?: string, referenceImageUrl?: string, referenceImageMimeType?: string, resolution?: string }): Promise<Project> => {
         try {
             let imageUrl = '';
             let remainingCredits: number | undefined;
@@ -181,7 +183,8 @@ export const ProjectsService = {
                     prompt: projectData.prompt,
                     image_url: imageUrl,
                     model: modelUsed,
-                    author_name: projectData.author
+                    author_name: projectData.author,
+                    reference_image_url: projectData.referenceImageUrl || (projectData.referenceImage?.startsWith('http') ? projectData.referenceImage : null)
                 })
                 .select()
                 .single();
@@ -235,7 +238,8 @@ export const ProjectsService = {
                         authorAvatar: authorAvatar,
                         model: payload.new.model || 'Unknown',
                         date: new Date(payload.new.created_at).toLocaleDateString(),
-                        time: new Date(payload.new.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        time: new Date(payload.new.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        referenceImage: payload.new.reference_image_url
                     };
 
                     onNewProject(newProject);

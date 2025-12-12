@@ -14,6 +14,7 @@ export interface Project {
     model: string;
     time: string;
     authorAvatar?: string;
+    referenceImage?: string;
 }
 
 interface ProjectsProps {
@@ -40,6 +41,18 @@ const Projects: React.FC<ProjectsProps> = ({ projects, currentUser, onOpenAuth, 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [currentPage]);
+
+    // Lock body scroll when lightbox is open
+    useEffect(() => {
+        if (selectedImage) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [selectedImage]);
 
     // Auth Protection
     if (!currentUser) {
@@ -287,17 +300,40 @@ const Projects: React.FC<ProjectsProps> = ({ projects, currentUser, onOpenAuth, 
                                         </div>
                                         <div>
                                             <h3 className="text-sm font-bold text-white">{selectedImage.author}</h3>
-                                            <p className="text-xs text-green-400 flex items-center gap-1">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                                                Author
-                                            </p>
                                         </div>
                                     </div>
 
+                                    {/* Type & Input Image */}
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border ${selectedImage.referenceImage
+                                                ? 'bg-purple-500/10 text-purple-400 border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.1)]'
+                                                : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]'
+                                                }`}>
+                                                {selectedImage.referenceImage ? 'Remix / Edit' : 'Generation'}
+                                            </span>
+                                        </div>
+
+                                        {selectedImage.referenceImage && (
+                                            <div className="space-y-2">
+                                                <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest pl-1">Input Image</span>
+                                                <div className="w-20 h-20 rounded-xl overflow-hidden border border-white/10 bg-white/5 relative group cursor-pointer transition-transform hover:scale-105"
+                                                    onClick={() => window.open(selectedImage.referenceImage, '_blank')}
+                                                >
+                                                    <img
+                                                        src={getOptimizedImageUrl(selectedImage.referenceImage, 200, 90)}
+                                                        alt="Reference Input"
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
                                     {/* Prompt Card */}
-                                    <div className="bg-[#111] p-4 rounded-xl border border-white/5 hover:border-white/10 transition-colors group">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Prompt</span>
+                                    <div className="bg-white/[0.02] p-4 rounded-xl border border-white/[0.05] hover:border-white/10 transition-colors group">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">PROMPT</span>
                                             <button
                                                 onClick={() => handleCopyPrompt(selectedImage.prompt, selectedImage.id)}
                                                 className="text-[10px] text-gray-500 hover:text-white transition-colors flex items-center gap-1"
@@ -312,20 +348,20 @@ const Projects: React.FC<ProjectsProps> = ({ projects, currentUser, onOpenAuth, 
                                     </div>
 
                                     {/* Details Grid */}
-                                    <div className="grid grid-cols-1 gap-2">
-                                        <div className="bg-[#111] p-3 rounded-xl border border-white/5 flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
+                                    <div className="grid grid-cols-1 gap-3">
+                                        <div className="bg-white/[0.02] px-4 py-3.5 rounded-xl border border-white/[0.05] flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
                                                 <Calendar size={14} className="text-gray-500" />
-                                                <span className="text-xs text-gray-400">Created</span>
+                                                <span className="text-xs text-gray-400 font-medium">Created</span>
                                             </div>
-                                            <span className="text-xs text-white font-medium">{selectedImage.date} • {selectedImage.time}</span>
+                                            <span className="text-xs text-white font-medium tracking-wide">{selectedImage.date} • {selectedImage.time}</span>
                                         </div>
-                                        <div className="bg-[#111] p-3 rounded-xl border border-white/5 flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
+                                        <div className="bg-white/[0.02] px-4 py-3.5 rounded-xl border border-white/[0.05] flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
                                                 <Wand2 size={14} className="text-gray-500" />
-                                                <span className="text-xs text-gray-400">Model</span>
+                                                <span className="text-xs text-gray-400 font-medium">Model</span>
                                             </div>
-                                            <span className="text-xs text-white font-medium">{selectedImage.model}</span>
+                                            <span className="text-xs text-brand-light font-bold tracking-wide">{selectedImage.model}</span>
                                         </div>
                                     </div>
 
@@ -341,7 +377,7 @@ const Projects: React.FC<ProjectsProps> = ({ projects, currentUser, onOpenAuth, 
                                         {onEditImage && (
                                             <button
                                                 onClick={() => onEditImage && onEditImage(getOriginalImageUrl(selectedImage.imageUrl))}
-                                                className="flex items-center justify-center gap-2 p-3 bg-[#1A1A1A] text-white border border-white/10 rounded-xl text-xs font-bold hover:bg-[#222] transition-colors"
+                                                className="flex items-center justify-center gap-2 p-3 bg-white/[0.05] text-white border border-white/10 rounded-xl text-xs font-bold hover:bg-white/[0.1] transition-colors"
                                             >
                                                 <Wand2 size={14} />
                                                 Remix / Edit

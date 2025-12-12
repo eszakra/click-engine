@@ -236,6 +236,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                 authorAvatar: user.avatar_url,
                 imageUrl: '',
                 referenceImage: base64Data,
+                referenceImageUrl: sourceImage.startsWith('http') ? sourceImage : undefined,
                 referenceImageMimeType: mimeType,
                 aspectRatio: imageAspectRatio
             });

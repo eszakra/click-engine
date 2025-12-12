@@ -83,7 +83,7 @@ const TopNav: React.FC<TopNavProps> = ({ currentView, onNavigate, currentUser, o
                             </div>
                             <div className="hidden md:flex flex-col items-start">
                                 <span className="text-xs font-bold text-white leading-none">{currentUser.name}</span>
-                                <span className="text-[10px] text-gray-500 leading-none mt-1">Online</span>
+
                             </div>
                         </button>
                     ) : (

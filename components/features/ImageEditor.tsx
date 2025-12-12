@@ -12,6 +12,7 @@ import PremiumLoader from '../ui/PremiumLoader';
 import { ProjectsService } from '../../services/projects';
 import { getOptimizedImageUrl } from '../../utils/imageOptimizer';
 import { EditorHistoryService, type EditorSession, type EditorVersion } from '../../services/editorHistory';
+import { uploadBase64Image } from '../../services/supabase';
 
 interface Tool {
     id: string;
@@ -226,6 +227,18 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                 base64Data = data;
             }
 
+            let referenceUrl = sourceImage.startsWith('http') ? sourceImage : undefined;
+
+            // If source is base64 (local upload), upload it first to get a URL for the reference
+            if (!referenceUrl) {
+                try {
+                    referenceUrl = await uploadBase64Image(sourceImage, 'generated-images');
+                } catch (uploadErr) {
+                    console.error("Failed to upload reference image:", uploadErr);
+                    // Continue without reference URL if upload fails (fallback to Generation tag)
+                }
+            }
+
             const userJson = localStorage.getItem('click_tools_current_user');
             const user = userJson ? JSON.parse(userJson) : { name: 'Guest', avatar_url: '' };
 
@@ -236,7 +249,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                 authorAvatar: user.avatar_url,
                 imageUrl: '',
                 referenceImage: base64Data,
-                referenceImageUrl: sourceImage.startsWith('http') ? sourceImage : undefined,
+                referenceImageUrl: referenceUrl,
                 referenceImageMimeType: mimeType,
                 aspectRatio: imageAspectRatio
             });
@@ -596,7 +609,10 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ initialImage }) => {
                                 exit={{ opacity: 0, x: 20 }}
                                 className="absolute right-6 top-24 bottom-24 flex flex-col justify-center pointer-events-none z-40"
                             >
-                                <div className="bg-[#0A0A0A]/90 backdrop-blur-xl border border-white/10 p-3 rounded-2xl shadow-2xl flex flex-col gap-3 max-h-full overflow-y-auto custom-scrollbar pointer-events-auto">
+                                <div
+                                    className="bg-[#0A0A0A]/90 backdrop-blur-xl border border-white/10 p-3 rounded-2xl shadow-2xl flex flex-col gap-3 max-h-full overflow-y-auto custom-scrollbar pointer-events-auto"
+                                    onWheel={(e) => e.stopPropagation()}
+                                >
 
                                     {/* Original Version */}
                                     <button
